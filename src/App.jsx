@@ -1,33 +1,52 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Routing er jonno import
+import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+
+// User Components
 import Header from './components/Header';
+import Footer from './components/Footer';
 import Home from './pages/Home';
-import Topup from './pages/Topup'; // Notun banano Topup page
-import Footer from './components/Footer'; 
+import Topup from './pages/Topup';
+import Auth from './pages/Auth';
 import Profile from './pages/Profile';
+
+// Admin Components
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOrders from './pages/admin/AdminOrders'; // Notun AdminOrders import kora holo
+
+// Sadharon user der layout (Header o Footer soho)
+const UserLayout = () => {
+  return (
+    <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col">
+      <Header />
+      <main className="container mx-auto px-4 pb-12 flex-grow">
+        <Outlet /> {/* Ekhane Home, Topup egulo load hobe */}
+      </main>
+      <Footer />
+    </div>
+  );
+};
 
 function App() {
   return (
-    // Puro app tike Router er vetor rakhte hobe
     <Router>
-      <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col">
+      <Routes>
         
-        <Header />
+        {/* User Der Jonno Routes */}
+        <Route element={<UserLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/topup" element={<Topup />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
 
-        {/* Main Content Area */}
-        <main className="container mx-auto px-4 pb-12 flex-grow">
-           {/* Ekhane amra Routes bebohar kore page gulo set korechi */}
-           <Routes>
-            <Route path="/profile" element={<Profile />} />
-             <Route path="/" element={<Home />} />           {/* Main url e asle Home dekhabe */}
-             <Route path="/topup" element={<Topup />} />     {/* /topup url e gele Topup page dekhabe */}
-           </Routes>
-        </main>
-        
-        {/* Nicher Footer */}
-        <Footer />
-        
-      </div>
+        {/* Admin Der Jonno Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} /> {/* /admin e gele eita dekhabe */}
+          <Route path="orders" element={<AdminOrders />} /> {/* Orders er notun route add kora holo */}
+        </Route>
+
+      </Routes>
     </Router>
   );
 }

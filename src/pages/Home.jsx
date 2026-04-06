@@ -15,7 +15,8 @@ const Home = () => {
   ];
 
   return (
-    <div className="w-full">
+    // Ekhane animate-fade-in-up add kora holo
+    <div className="w-full animate-fade-in-up">
       <NoticeBar />
       <HeroSlider />
 
@@ -26,14 +27,14 @@ const Home = () => {
         {/* Grid for Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {categories.map((item) => (
-            // div er poriborte ekhane Link bebohar kora hoyeche (Missing Link)
+            // div er poriborte ekhane Link bebohar kora hoyeche
             <Link to="/topup" key={item.id} className="flex flex-col items-center cursor-pointer group">
               {/* Image Container with gradient background */}
               <div className="bg-gradient-to-b from-[#0052FF] to-[#002f99] p-[2px] rounded-2xl shadow-lg transition transform group-hover:-translate-y-1">
                 <img 
                   src={item.image} 
                   alt={item.name} 
-                  className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-2xl bg-[#0a1930]" // Apnar screenshot er chobi gulo add korben
+                  className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-2xl bg-[#0a1930]" 
                 />
               </div>
               {/* Title */}
@@ -50,7 +51,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Latest Orders Section - Niche add kora holo */}
+      {/* Latest Orders Section */}
       <LatestOrders />
 
     </div>
