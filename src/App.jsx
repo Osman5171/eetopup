@@ -8,8 +8,10 @@ import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
+import AdminDeposits from './pages/admin/AdminDeposits';
 
 // Admin Components
+import AdminSlider from './pages/admin/AdminSlider';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders'; // Notun AdminOrders import kora holo
@@ -41,6 +43,7 @@ function App() {
         </Route>
 
         {/* Admin Der Jonno Routes */}
+        <Route path="deposits" element={<AdminDeposits />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} /> {/* /admin e gele eita dekhabe */}
           <Route path="orders" element={<AdminOrders />} /> {/* Orders er notun route add kora holo */}

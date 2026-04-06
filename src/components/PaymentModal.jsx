@@ -1,21 +1,56 @@
 import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { Loader2 } from 'lucide-react';
 
 const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
   const [senderNumber, setSenderNumber] = useState('');
   const [trxId, setTrxId] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  // Method onujayi rong o logo change hobe
   const isBkash = paymentMethod === 'bkash';
-  const themeColor = isBkash ? 'bg-[#e2136e]' : 'bg-[#f7931e]'; // bKash pink, Nagad orange
+  const themeColor = isBkash ? 'bg-[#e2136e]' : 'bg-[#f7931e]'; 
   const title = isBkash ? 'bKash Payment' : 'Nagad Payment';
 
-  const handleConfirm = (e) => {
+  // ডাটাবেসে পেমেন্ট রিকোয়েস্ট পাঠানোর ফাংশন
+  const handleConfirm = async (e) => {
     e.preventDefault();
-    alert(`Payment Submitted!\nNumber: ${senderNumber}\nTrxID: ${trxId}\nAmount: ৳${amount}`);
-    // Vobisshote ekhane Supabase database e order save korar code thakbe
-    onClose();
+    setLoading(true);
+
+    try {
+      // ১. চেক করবে ইউজার লগিন করা আছে কিনা
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Please login first to add money!");
+        setLoading(false);
+        return;
+      }
+
+      // ২. ডাটাবেসের 'deposits' টেবিলে রিকোয়েস্ট সেভ করা
+      const { error } = await supabase.from('deposits').insert({
+        user_id: session.user.id,
+        method: isBkash ? 'bKash' : 'Nagad',
+        sender_number: senderNumber,
+        trx_id: trxId,
+        amount: amount,
+        status: 'pending' // ডিফল্টভাবে pending থাকবে, অ্যাডমিন পরে এক্সেপ্ট করবে
+      });
+
+      if (error) throw error;
+
+      alert('Payment Request Submitted! Admin will verify and add balance soon. ✅');
+      
+      // ফর্ম ক্লিয়ার করে মোডাল বন্ধ করে দেওয়া
+      setSenderNumber('');
+      setTrxId('');
+      onClose();
+
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,7 +72,7 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
         <div className="p-5 md:p-6">
           <div className="text-center mb-6">
             <p className="text-gray-600 text-sm mb-1">Please Send Money to this number</p>
-            {/* Ekhane apnar admin number boshaben */}
+            {/* এখানে আপনার ওয়েবসাইটের অ্যাডমিন নাম্বারটি বসাবেন */}
             <p className="text-2xl font-bold text-[#0a1930] tracking-wider mb-2">017XX-XXXXXX</p>
             <p className="text-sm font-semibold text-gray-500">Amount: <span className="text-red-500 font-bold">৳{amount}</span></p>
           </div>
@@ -68,9 +103,10 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
             
             <button 
               type="submit" 
-              className={`w-full text-white font-bold rounded-lg p-3 mt-2 transition shadow-md ${themeColor} hover:opacity-90`}
+              disabled={loading}
+              className={`w-full text-white font-bold rounded-lg p-3 mt-2 transition shadow-md flex justify-center items-center gap-2 ${themeColor} hover:opacity-90 disabled:opacity-70`}
             >
-              Confirm Payment
+              {loading ? <Loader2 size={20} className="animate-spin"/> : 'Confirm Payment'}
             </button>
           </form>
 
