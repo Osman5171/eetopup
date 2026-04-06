@@ -4,12 +4,13 @@ import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 // User Components
 import Header from './components/Header';
 import Footer from './components/Footer';
-import WhatsAppFloat from './components/WhatsAppFloat'; // নতুন ইমপোর্ট
+import WhatsAppFloat from './components/WhatsAppFloat';
 import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
-import Contact from './pages/Contact'; // নতুন ইমপোর্ট
+import Contact from './pages/Contact';
+import NotFound from './pages/NotFound'; // নতুন 404 পেজ ইমপোর্ট
 
 // Admin Components & Layout
 import AdminLayout from './layouts/AdminLayout';
@@ -47,7 +48,7 @@ function App() {
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/contact" element={<Contact />} /> {/* নতুন রুট */}
+          <Route path="/contact" element={<Contact />} />
         </Route>
 
         {/* Admin Der Jonno Routes (সবগুলো AdminLayout এর ভেতরে) */}
@@ -60,6 +61,9 @@ function App() {
           <Route path="slider" element={<AdminSlider />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
+        {/* 404 Not Found Route (এটি অবশ্যই সবার শেষে থাকতে হবে) */}
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </Router>
