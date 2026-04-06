@@ -4,10 +4,12 @@ import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 // User Components
 import Header from './components/Header';
 import Footer from './components/Footer';
+import WhatsAppFloat from './components/WhatsAppFloat'; // নতুন ইমপোর্ট
 import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
+import Contact from './pages/Contact'; // নতুন ইমপোর্ট
 
 // Admin Components & Layout
 import AdminLayout from './layouts/AdminLayout';
@@ -25,9 +27,11 @@ const UserLayout = () => {
     <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col">
       <Header />
       <main className="container mx-auto px-4 pb-12 flex-grow">
-        <Outlet /> {/* এখানে Home, Topup এগুলো লোড হবে */}
+        <Outlet /> {/* এখানে Home, Topup, Contact এগুলো লোড হবে */}
       </main>
       <Footer />
+      {/* WhatsApp Floating Button - এটি সব পেজে দেখা যাবে */}
+      <WhatsAppFloat />
     </div>
   );
 };
@@ -43,6 +47,7 @@ function App() {
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/contact" element={<Contact />} /> {/* নতুন রুট */}
         </Route>
 
         {/* Admin Der Jonno Routes (সবগুলো AdminLayout এর ভেতরে) */}
