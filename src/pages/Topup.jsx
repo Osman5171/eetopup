@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import PaymentModal from '../components/PaymentModal';
 import { supabase } from '../supabaseClient';
 import { Loader2 } from 'lucide-react';
+// নোটিফিকেশন ইউটিলস ইমপোর্ট করা হলো
+import { sendTelegramMessage, sendEmailNotification } from '../utils/notify';
 
 const Topup = () => {
   const navigate = useNavigate();
@@ -49,8 +51,8 @@ const Topup = () => {
 
   // Buy Now বাটনের ফাংশন
   const handleBuyNow = async () => {
-    if (!playerId) return alert("দয়া করে আপনার Player ID দিন!");
-    if (!selectedPackage) return alert("দয়া করে একটি প্যাকেজ সিলেক্ট করুন!");
+    if (!playerId) return alert("দয়া করে আপনার Player ID দিন!");
+    if (!selectedPackage) return alert("দয়া করে একটি প্যাকেজ সিলেক্ট করুন!");
     if (!user) {
       alert("অর্ডার করতে হলে আগে লগিন করতে হবে!");
       return navigate('/auth');
@@ -60,12 +62,12 @@ const Topup = () => {
       setIsModalOpen(true); // Instant pay হলে bKash/Nagad Modal ওপেন হবে
     } else {
       // Wallet Payment লজিক
-      if(window.confirm(`আপনি কি ৳${currentPrice} দিয়ে ${currentPkg.name} কিনতে চান?`)) {
+      if(window.confirm(`আপনি কি ৳${currentPrice} দিয়ে ${currentPkg.name} কিনতে চান?`)) {
         setProcessing(true);
 
         // ব্যালেন্স চেক
         if (userBalance < currentPrice) {
-          alert("আপনার একাউন্টে পর্যাপ্ত ব্যালেন্স নেই! দয়া করে Add Money করুন।");
+          alert("আপনার একাউন্টে পর্যাপ্ত ব্যালেন্স নেই! দয়া করে Add Money করুন।");
           setProcessing(false);
           return;
         }
@@ -85,8 +87,24 @@ const Topup = () => {
         });
 
         if (!error) {
-          alert("আপনার অর্ডারটি সফলভাবে প্লেস করা হয়েছে! ✅");
-          navigate('/profile'); // অর্ডার শেষে প্রোফাইল পেজে নিয়ে যাবে
+          // --- নোটিফিকেশন পাঠানো শুরু ---
+          
+          // ১. টেলিগ্রাম নোটিফিকেশন
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n🎮 <b>Player ID:</b> <code>${playerId}</code>\n💎 <b>Package:</b> ${currentPkg.name}\n💰 <b>Amount:</b> ৳${currentPrice}\n💳 <b>Method:</b> Wallet`;
+          await sendTelegramMessage(telegramMsg);
+
+          // ২. ইমেইল নোটিফিকেশন
+          sendEmailNotification({
+            user_email: user.email,
+            player_id: playerId,
+            package: currentPkg.name,
+            amount: currentPrice
+          });
+
+          // --- নোটিফিকেশন পাঠানো শেষ ---
+
+          alert("আপনার অর্ডারটি সফলভাবে প্লেস করা হয়েছে! ✅");
+          navigate('/profile'); // অর্ডার শেষে প্রোফাইল পেজে নিয়ে যাবে
         } else {
           alert("Error: " + error.message);
         }
@@ -241,7 +259,6 @@ const Topup = () => {
         onClose={() => setIsModalOpen(false)} 
         amount={currentPrice}
         paymentMethod="bkash" 
-        // Modal-এর কাজ আমরা পরে কানেক্ট করবো, আপাতত Wallet Pay ফোকাস করছি
       />
     </div>
   );

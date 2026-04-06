@@ -1,7 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 const NoticeBar = () => {
   const [isVisible, setIsVisible] = useState(true);
+  const [notice, setNotice] = useState('Loading notice...');
+
+  useEffect(() => {
+    fetchNotice();
+  }, []);
+
+  const fetchNotice = async () => {
+    const { data } = await supabase.from('settings').select('notice_text').eq('id', 1).single();
+    if (data) {
+      setNotice(data.notice_text);
+    }
+  };
 
   if (!isVisible) return null;
 
@@ -14,16 +27,16 @@ const NoticeBar = () => {
           NOTICE
         </span>
         
-        {/* Scrolling Text */}
+        {/* Scrolling Text from Database */}
         <marquee className="text-sm font-medium pt-0.5">
-          Welcome to Eagle Eye Top Up! Get the fastest delivery and best discounts on all game top-ups. যেকোনো প্রয়োজনে আমাদের হেল্পলাইনে যোগাযোগ করুন।
+          {notice}
         </marquee>
       </div>
       
       {/* Close Button */}
       <button 
         onClick={() => setIsVisible(false)} 
-        className="ml-3 text-white hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-1.5 transition duration-200"
+        className="ml-3 text-white bg-white/10 hover:bg-white/20 rounded-full p-1.5 transition duration-200"
         title="Close Notice"
       >
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">

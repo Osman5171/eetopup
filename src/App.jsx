@@ -8,21 +8,24 @@ import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
-import AdminDeposits from './pages/admin/AdminDeposits';
 
-// Admin Components
-import AdminSlider from './pages/admin/AdminSlider';
+// Admin Components & Layout
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminOrders from './pages/admin/AdminOrders'; // Notun AdminOrders import kora holo
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminDeposits from './pages/admin/AdminDeposits';
+import AdminPackages from './pages/admin/AdminPackages';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSlider from './pages/admin/AdminSlider';
+import AdminSettings from './pages/admin/AdminSettings';
 
-// Sadharon user der layout (Header o Footer soho)
+// সাধারণ ইউজারদের লেআউট (Header ও Footer সহ)
 const UserLayout = () => {
   return (
     <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col">
       <Header />
       <main className="container mx-auto px-4 pb-12 flex-grow">
-        <Outlet /> {/* Ekhane Home, Topup egulo load hobe */}
+        <Outlet /> {/* এখানে Home, Topup এগুলো লোড হবে */}
       </main>
       <Footer />
     </div>
@@ -42,11 +45,15 @@ function App() {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
-        {/* Admin Der Jonno Routes */}
-        <Route path="deposits" element={<AdminDeposits />} />
+        {/* Admin Der Jonno Routes (সবগুলো AdminLayout এর ভেতরে) */}
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} /> {/* /admin e gele eita dekhabe */}
-          <Route path="orders" element={<AdminOrders />} /> {/* Orders er notun route add kora holo */}
+          <Route index element={<AdminDashboard />} /> 
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="deposits" element={<AdminDeposits />} />
+          <Route path="packages" element={<AdminPackages />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="slider" element={<AdminSlider />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
       </Routes>
