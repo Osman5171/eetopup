@@ -1,39 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Loader2, X } from 'lucide-react';
-// নোটিফিকেশন পাঠানোর ইউটিলস
-import { sendTelegramMessage, sendEmailNotification } from '../utils/notify';
+import { Loader2, X, Zap } from 'lucide-react';
 
 const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
-  const [senderNumber, setSenderNumber] = useState('');
-  const [trxId, setTrxId] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // ডাইনামিক অ্যাডমিন নম্বরগুলোর জন্য স্টেট
-  const [adminNumbers, setAdminNumbers] = useState({ bkash: 'Loading...', nagad: 'Loading...' });
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchAdminNumbers();
-    }
-  }, [isOpen]);
-
-  const fetchAdminNumbers = async () => {
-    const { data } = await supabase.from('settings').select('bkash_number, nagad_number').eq('id', 1).single();
-    if (data) {
-      setAdminNumbers({ bkash: data.bkash_number, nagad: data.nagad_number });
-    }
-  };
 
   if (!isOpen) return null;
 
   const isBkash = paymentMethod === 'bkash';
   const themeColor = isBkash ? 'bg-[#e2136e]' : 'bg-[#f7931e]'; 
-  const title = isBkash ? 'bKash Payment' : 'Nagad Payment';
-  const activeAdminNumber = isBkash ? adminNumbers.bkash : adminNumbers.nagad;
+  const title = "Auto Add Money";
 
-  const handleConfirm = async (e) => {
-    e.preventDefault();
+  const handlePayNow = async () => {
     setLoading(true);
 
     try {
@@ -44,37 +22,36 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
         return;
       }
 
-      // ১. ডাটাবেসে রিকোয়েস্ট সেভ
-      const { error } = await supabase.from('deposits').insert({
-        user_id: session.user.id,
-        method: isBkash ? 'bKash' : 'Nagad',
-        sender_number: senderNumber,
-        trx_id: trxId,
-        amount: amount,
-        status: 'pending'
+      // 1. User er details niye asha (payment gateway te lagbe)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', session.user.id)
+        .single();
+
+      // 2. Supabase Edge Function call kora (create-payment)
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: amount,
+          fullName: profile?.full_name || 'Gamer',
+          email: session.user.email,
+          userId: session.user.id
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error("Payment initialization failed!");
+      }
 
-      // ২. টেলিগ্রাম এবং ইমেইল নোটিফিকেশন পাঠানো
-      const method = isBkash ? 'bKash' : 'Nagad';
-      const telegramMsg = `💸 <b>New Deposit Request!</b>\n\n👤 <b>User:</b> ${session.user.email}\n💳 <b>Method:</b> ${method}\n📱 <b>Sender:</b> <code>${senderNumber}</code>\n📝 <b>TrxID:</b> <code>${trxId}</code>\n💰 <b>Amount:</b> ৳${amount}`;
-      
-      await sendTelegramMessage(telegramMsg);
-      
-      sendEmailNotification({
-        user_email: session.user.email,
-        package: `Add Money (${method})`,
-        player_id: senderNumber,
-        amount: amount
-      });
-
-      alert('Payment Request Submitted Successfully! ✅');
-      setSenderNumber('');
-      setTrxId('');
-      onClose();
+      // 3. UddoktaPay theke URL asle sekane redirect kora
+      if (data && data.payment_url) {
+        window.location.href = data.payment_url;
+      } else {
+        alert("Failed to get payment link. Try again.");
+      }
 
     } catch (error) {
+      console.error(error);
       alert("Error: " + error.message);
     } finally {
       setLoading(false);
@@ -88,54 +65,38 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentMethod }) => {
         
         {/* Header */}
         <div className={`${themeColor} text-white px-5 py-4 flex justify-between items-center`}>
-          <h3 className="font-bold text-lg">{title}</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2"><Zap size={20}/> {title}</h3>
           <button onClick={onClose} className="text-white hover:opacity-80 transition">
             <X size={24} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 md:p-6">
-          <div className="text-center mb-6">
-            <p className="text-gray-600 text-sm mb-1 font-medium">নিচের নাম্বারে টাকা পাঠিয়ে তথ্য দিন</p>
-            {/* ডাইনামিক নম্বর */}
-            <p className="text-2xl font-black text-[#0a1930] tracking-wider mb-2">{activeAdminNumber}</p>
-            <p className="text-sm font-semibold text-gray-500">পরিমাণ: <span className="text-red-500 font-bold">৳{amount}</span></p>
+        <div className="p-6 text-center">
+          <div className="mb-6">
+            <p className="text-gray-600 text-sm mb-2 font-medium">Auto Payment Gateway via UddoktaPay</p>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 inline-block w-full">
+               <p className="text-sm text-gray-500 mb-1">Total Payable Amount</p>
+               <p className="text-3xl font-black text-[#0a1930] tracking-wider">৳{amount}</p>
+            </div>
+            <p className="text-xs text-green-600 font-bold mt-4 bg-green-50 p-2 rounded-lg inline-block">
+              Payment korar sathe sathei auto balance add hobe!
+            </p>
           </div>
 
-          <form onSubmit={handleConfirm} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Sender Number</label>
-              <input 
-                type="text" 
-                required
-                placeholder="01XXXXXXXXX"
-                value={senderNumber}
-                onChange={(e) => setSenderNumber(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[#0052FF] outline-none transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Transaction ID</label>
-              <input 
-                type="text" 
-                required
-                placeholder="TrxID..."
-                value={trxId}
-                onChange={(e) => setTrxId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[#0052FF] outline-none transition"
-              />
-            </div>
-            
-            <button 
-              type="submit" 
-              disabled={loading}
-              className={`w-full text-white font-bold rounded-lg p-3.5 mt-2 transition shadow-md flex justify-center items-center gap-2 ${themeColor} hover:brightness-95 disabled:opacity-70`}
-            >
-              {loading ? <Loader2 size={20} className="animate-spin"/> : 'Confirm Payment'}
-            </button>
-          </form>
+          <button 
+            onClick={handlePayNow} 
+            disabled={loading}
+            className={`w-full text-white font-bold rounded-xl p-4 transition shadow-lg flex justify-center items-center gap-2 ${themeColor} hover:brightness-95 disabled:opacity-70`}
+          >
+            {loading ? (
+              <> <Loader2 size={20} className="animate-spin"/> Processing... </>
+            ) : (
+              'Pay Now & Add Balance'
+            )}
+          </button>
 
+          <p className="text-[10px] text-gray-400 mt-4 text-center">Secure Payment Processed by UddoktaPay</p>
         </div>
       </div>
     </div>
