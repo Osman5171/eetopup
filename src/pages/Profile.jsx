@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // 👈 এখানে Link ইমপোর্ট করা হয়েছে
 import { supabase } from '../supabaseClient';
 
 const Profile = () => {
@@ -26,7 +26,7 @@ const Profile = () => {
   const fetchUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    // লগিন করা না থাকলে auth পেজে পাঠিয়ে দিবে
+    // লগিন করা না থাকলে auth পেজে পাঠিয়ে দিবে
     if (!session) {
       navigate('/auth');
       return;

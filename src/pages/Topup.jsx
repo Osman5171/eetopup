@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PaymentModal from '../components/PaymentModal';
 import { supabase } from '../supabaseClient';
-import { Loader2 } from 'lucide-react';
-// নোটিফিকেশন ইউটিলস ইমপোর্ট করা হলো
+import { Loader2, Tag, CheckCircle2, XCircle } from 'lucide-react';
 import { sendTelegramMessage, sendEmailNotification } from '../utils/notify';
 
 const Topup = () => {
@@ -19,37 +18,77 @@ const Topup = () => {
   const [user, setUser] = useState(null);
   const [userBalance, setUserBalance] = useState(0);
 
+  // --- Promo Code States ---
+  const [promoCode, setPromoCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [promoStatus, setPromoStatus] = useState(null); // 'success', 'error', 'loading'
+  const [promoMessage, setPromoMessage] = useState('');
+
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
-    // ১. ইউজার চেক করা এবং ব্যালেন্স আনা
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUser(session.user);
       const { data: profile } = await supabase.from('profiles').select('balance').eq('id', session.user.id).single();
-      if (profile) setUserBalance(profile.balance);
+      if (profile) setUserBalance(profile.balance || 0);
     }
 
-    // ২. ডাটাবেস থেকে প্যাকেজগুলো আনা
-    const { data: pkgs } = await supabase
-      .from('packages')
-      .select('*')
-      .eq('status', 'Active')
-      .order('sell_price', { ascending: true });
-
+    const { data: pkgs } = await supabase.from('packages').select('*').eq('status', 'Active').order('sell_price', { ascending: true });
     if (pkgs && pkgs.length > 0) {
       setPackages(pkgs);
-      setSelectedPackage(pkgs[0].id); // প্রথমটা ডিফল্ট সিলেক্ট থাকবে
+      setSelectedPackage(pkgs[0].id);
     }
     setLoading(false);
   };
 
   const currentPkg = packages.find(p => p.id === selectedPackage);
   const currentPrice = currentPkg?.sell_price || 0;
+  const finalPrice = Math.max(0, currentPrice - discount); // ডিসকাউন্টের পর টোটাল দাম
 
-  // Buy Now বাটনের ফাংশন
+  // --- Promo Code Apply Function ---
+  const handleApplyPromo = async () => {
+    if (!promoCode) return;
+    setPromoStatus('loading');
+    
+    const codeToApply = promoCode.toUpperCase().trim();
+
+    const { data: promo, error } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', codeToApply)
+      .eq('status', 'Active')
+      .single();
+
+    if (error || !promo) {
+      setPromoStatus('error');
+      setPromoMessage('Invalid or Expired Promo Code!');
+      setDiscount(0);
+      return;
+    }
+
+    if (promo.current_uses >= promo.max_uses) {
+      setPromoStatus('error');
+      setPromoMessage('Promo Code Usage Limit Reached!');
+      setDiscount(0);
+      return;
+    }
+
+    setPromoStatus('success');
+    setPromoMessage(`Awesome! You got ৳${promo.discount_amount} discount.`);
+    setDiscount(promo.discount_amount);
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setDiscount(0);
+    setPromoStatus(null);
+    setPromoMessage('');
+  };
+
+  // --- Buy Now Function ---
   const handleBuyNow = async () => {
     if (!playerId) return alert("দয়া করে আপনার Player ID দিন!");
     if (!selectedPackage) return alert("দয়া করে একটি প্যাকেজ সিলেক্ট করুন!");
@@ -59,52 +98,50 @@ const Topup = () => {
     }
 
     if (paymentMethod === 'instant') {
-      setIsModalOpen(true); // Instant pay হলে bKash/Nagad Modal ওপেন হবে
+      setIsModalOpen(true); 
     } else {
-      // Wallet Payment লজিক
-      if(window.confirm(`আপনি কি ৳${currentPrice} দিয়ে ${currentPkg.name} কিনতে চান?`)) {
+      // Wallet Payment Logic
+      if(window.confirm(`আপনি কি ৳${finalPrice} দিয়ে ${currentPkg.name} কিনতে চান?`)) {
         setProcessing(true);
 
-        // ব্যালেন্স চেক
-        if (userBalance < currentPrice) {
+        if (userBalance < finalPrice) {
           alert("আপনার একাউন্টে পর্যাপ্ত ব্যালেন্স নেই! দয়া করে Add Money করুন।");
           setProcessing(false);
           return;
         }
 
         // ১. ব্যালেন্স কাটা
-        const newBalance = userBalance - currentPrice;
+        const newBalance = userBalance - finalPrice;
         await supabase.from('profiles').update({ balance: newBalance }).eq('id', user.id);
 
-        // ২. ডাটাবেসে অর্ডার সেভ করা
+        // ২. অর্ডার সেভ করা
         const { error } = await supabase.from('orders').insert({
           user_id: user.id,
-          package_name: currentPkg.name,
+          package_name: currentPkg.name + (discount > 0 ? ` (Promo: ${promoCode})` : ''),
           player_id: playerId,
-          amount: currentPrice,
+          amount: finalPrice,
           payment_method: 'Wallet',
           status: 'pending' 
         });
 
+        // ৩. প্রোমো কোড ইউজ হয়ে থাকলে তার লিমিট ১ বাড়িয়ে দেওয়া
+        if (discount > 0 && promoCode) {
+          await supabase.rpc('increment_promo_usage', { p_code: promoCode.toUpperCase() });
+        }
+
         if (!error) {
-          // --- নোটিফিকেশন পাঠানো শুরু ---
-          
-          // ১. টেলিগ্রাম নোটিফিকেশন
-          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n🎮 <b>Player ID:</b> <code>${playerId}</code>\n💎 <b>Package:</b> ${currentPkg.name}\n💰 <b>Amount:</b> ৳${currentPrice}\n💳 <b>Method:</b> Wallet`;
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n🎮 <b>ID:</b> <code>${playerId}</code>\n💎 <b>Package:</b> ${currentPkg.name}\n🎁 <b>Discount:</b> ৳${discount}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
           await sendTelegramMessage(telegramMsg);
 
-          // ২. ইমেইল নোটিফিকেশন
           sendEmailNotification({
             user_email: user.email,
             player_id: playerId,
             package: currentPkg.name,
-            amount: currentPrice
+            amount: finalPrice
           });
 
-          // --- নোটিফিকেশন পাঠানো শেষ ---
-
           alert("আপনার অর্ডারটি সফলভাবে প্লেস করা হয়েছে! ✅");
-          navigate('/profile'); // অর্ডার শেষে প্রোফাইল পেজে নিয়ে যাবে
+          navigate('/profile'); 
         } else {
           alert("Error: " + error.message);
         }
@@ -113,33 +150,25 @@ const Topup = () => {
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="animate-spin text-[#0052FF]" size={40}/></div>;
-  }
+  if (loading) return <div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="animate-spin text-[#0052FF]" size={40}/></div>;
 
   return (
     <div className="w-full mt-6 relative animate-fade-in-up">
       
       {/* Product Header */}
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex items-center gap-4 mb-6">
-        <img 
-          src="https://eagleeyetopup.com/ff.png" 
-          alt="Diamond Top Up" 
-          className="w-16 h-16 rounded object-cover bg-[#0a1930]"
-        />
+        <img src="https://eagleeyetopup.com/ff.png" alt="Diamond Top Up" className="w-16 h-16 rounded object-cover bg-[#0a1930]"/>
         <div>
           <h1 className="text-xl font-bold text-[#0a1930]">Free Fire Top Up</h1>
           <p className="text-sm text-gray-500">Player ID Code</p>
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           
-          {/* Select Recharge */}
           <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-[#0a1930] flex items-center gap-2 border-b pb-3 mb-4">
               <span className="bg-[#0052FF] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
@@ -152,8 +181,7 @@ const Topup = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {packages.map((pkg) => (
                   <div 
-                    key={pkg.id}
-                    onClick={() => setSelectedPackage(pkg.id)}
+                    key={pkg.id} onClick={() => setSelectedPackage(pkg.id)}
                     className={`border rounded-md p-3 flex justify-between items-center cursor-pointer transition ${
                       selectedPackage === pkg.id ? 'border-[#0052FF] bg-blue-50 ring-1 ring-[#0052FF]' : 'border-gray-200 hover:border-[#0052FF]'
                     }`}
@@ -169,15 +197,6 @@ const Topup = () => {
             )}
           </div>
 
-          {/* Rules */}
-          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-[#0a1930] border-b pb-3 mb-4">Rules & Conditions</h2>
-            <ul className="space-y-3 text-sm text-gray-700">
-              <li className="flex gap-2"><span>⦿</span> শুধুমাত্র Bangladesh সার্ভারে ID Code দিয়ে টপ আপ হবে।</li>
-              <li className="flex gap-2"><span>⦿</span> Player ID ভুল দিয়ে Diamond না পেলে কর্তৃপক্ষ দায়ী নয়।</li>
-            </ul>
-          </div>
-
         </div>
 
         {/* Right Column */}
@@ -189,63 +208,68 @@ const Topup = () => {
               <span className="bg-[#0052FF] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
               Account Info
             </h2>
-            <div className="mb-2">
-              <input 
-                type="number" 
-                value={playerId}
-                onChange={(e) => setPlayerId(e.target.value)}
-                placeholder="এখানে Player ID দিন..." 
-                className="w-full border border-gray-300 rounded p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] font-bold tracking-wider"
-              />
-            </div>
+            <input 
+              type="number" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
+              placeholder="এখানে Player ID দিন..." 
+              className="w-full border border-gray-300 rounded p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] font-bold tracking-wider"
+            />
           </div>
 
-          {/* Payment Option */}
+          {/* Payment Option & Promo */}
           <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-[#0a1930] flex items-center gap-2 border-b pb-3 mb-4">
               <span className="bg-[#0052FF] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
-              Payment Option
+              Payment
             </h2>
             
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div 
-                onClick={() => setPaymentMethod('wallet')}
-                className={`border rounded-lg cursor-pointer overflow-hidden transition ${paymentMethod === 'wallet' ? 'border-[#0052FF] ring-2 ring-[#0052FF] shadow-md' : 'border-gray-200 opacity-70 hover:opacity-100'}`}
-              >
-                <div className="p-4 flex justify-center h-16 items-center">
-                  <span className="font-black text-[#0a1930] flex items-center gap-2">👛 Wallet Pay</span>
-                </div>
-                <div className="bg-gray-100 text-center text-xs py-1.5 text-gray-700 font-bold border-t">My Balance</div>
+            {/* Promo Code Section */}
+            <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-2">
+                <Tag size={14}/> Have a Promo Code?
+              </label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)}
+                  placeholder="Enter Code" disabled={promoStatus === 'success'}
+                  className="w-full border border-gray-300 rounded-lg p-2 uppercase text-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                />
+                {promoStatus === 'success' ? (
+                  <button onClick={handleRemovePromo} className="bg-red-500 text-white px-3 py-2 rounded-lg font-bold text-sm hover:bg-red-600 transition">Remove</button>
+                ) : (
+                  <button onClick={handleApplyPromo} disabled={promoStatus === 'loading'} className="bg-[#0a1930] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#1e3a6e] transition disabled:opacity-50">
+                    {promoStatus === 'loading' ? <Loader2 size={16} className="animate-spin"/> : 'Apply'}
+                  </button>
+                )}
               </div>
+              {promoStatus === 'success' && <p className="text-green-600 text-xs font-bold mt-2 flex items-center gap-1"><CheckCircle2 size={14}/> {promoMessage}</p>}
+              {promoStatus === 'error' && <p className="text-red-500 text-xs font-bold mt-2 flex items-center gap-1"><XCircle size={14}/> {promoMessage}</p>}
+            </div>
 
-              <div 
-                onClick={() => setPaymentMethod('instant')}
-                className={`border rounded-lg cursor-pointer overflow-hidden transition ${paymentMethod === 'instant' ? 'border-[#0052FF] ring-2 ring-[#0052FF] shadow-md' : 'border-gray-200 opacity-70 hover:opacity-100'}`}
-              >
+            {/* Payment Method */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div onClick={() => setPaymentMethod('wallet')} className={`border rounded-lg cursor-pointer overflow-hidden transition ${paymentMethod === 'wallet' ? 'border-[#0052FF] ring-2 ring-[#0052FF] shadow-md' : 'border-gray-200 opacity-70'}`}>
+                <div className="p-4 flex justify-center h-16 items-center"><span className="font-black text-[#0a1930]">👛 Wallet Pay</span></div>
+                <div className="bg-gray-100 text-center text-xs py-1.5 font-bold border-t">My Balance</div>
+              </div>
+              <div onClick={() => setPaymentMethod('instant')} className={`border rounded-lg cursor-pointer overflow-hidden transition ${paymentMethod === 'instant' ? 'border-[#0052FF] ring-2 ring-[#0052FF] shadow-md' : 'border-gray-200 opacity-70'}`}>
                 <div className="p-4 flex justify-center h-16 items-center gap-3 bg-gray-50">
                   <img src="https://freelogopng.com/images/all_img/1656234782bkash-app-logo.png" alt="bKash" className="h-6" />
-                  <img src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" alt="Nagad" className="h-6" />
                 </div>
-                <div className="bg-gray-100 text-center text-xs py-1.5 text-gray-700 font-bold border-t">Instant Pay</div>
+                <div className="bg-gray-100 text-center text-xs py-1.5 font-bold border-t">Instant Pay</div>
               </div>
             </div>
 
-            <div className="text-sm text-gray-600 mb-6 bg-blue-50 p-3 rounded-lg border border-blue-100">
-              <div className="flex justify-between mb-1">
-                <span>My Wallet Balance:</span>
-                <span className="font-bold text-[#0a1930]">৳{userBalance}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span>Total Payable:</span>
-                <span className="text-[#0052FF] text-lg">৳{currentPrice}</span>
+            {/* Bill Summary */}
+            <div className="text-sm text-gray-600 mb-6 bg-blue-50 p-3 rounded-lg border border-blue-100 space-y-1.5">
+              <div className="flex justify-between"><span>Wallet Balance:</span><span className="font-bold text-[#0a1930]">৳{userBalance}</span></div>
+              <div className="flex justify-between"><span>Subtotal:</span><span className="font-bold">৳{currentPrice}</span></div>
+              {discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Discount:</span><span>- ৳{discount}</span></div>}
+              <div className="flex justify-between font-black border-t border-blue-200 pt-1.5 mt-1.5">
+                <span>Total Payable:</span><span className="text-[#0052FF] text-lg">৳{finalPrice}</span>
               </div>
             </div>
 
-            <button 
-              onClick={handleBuyNow} 
-              disabled={processing}
-              className="w-full bg-[#0052FF] text-white rounded-lg p-3.5 font-bold text-lg hover:bg-blue-700 transition shadow-lg flex justify-center items-center gap-2 disabled:opacity-70"
-            >
+            <button onClick={handleBuyNow} disabled={processing} className="w-full bg-[#0052FF] text-white rounded-lg p-3.5 font-bold text-lg hover:bg-blue-700 transition shadow-lg flex justify-center items-center gap-2 disabled:opacity-70">
               {processing ? <Loader2 className="animate-spin" size={24} /> : 'Place Order'}
             </button>
           </div>
@@ -253,13 +277,7 @@ const Topup = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      <PaymentModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        amount={currentPrice}
-        paymentMethod="bkash" 
-      />
+      <PaymentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} amount={finalPrice} paymentMethod="bkash" />
     </div>
   );
 };

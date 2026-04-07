@@ -5,12 +5,13 @@ import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import WhatsAppFloat from './components/WhatsAppFloat';
+import InstallBanner from './components/InstallBanner'; // 👈 নতুন ইনস্টল ব্যানার ইমপোর্ট
 import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
-import NotFound from './pages/NotFound'; // নতুন 404 পেজ ইমপোর্ট
+import NotFound from './pages/NotFound';
 
 // Admin Components & Layout
 import AdminLayout from './layouts/AdminLayout';
@@ -21,6 +22,7 @@ import AdminPackages from './pages/admin/AdminPackages';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSlider from './pages/admin/AdminSlider';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminPromo from './pages/admin/AdminPromo';
 
 // সাধারণ ইউজারদের লেআউট (Header ও Footer সহ)
 const UserLayout = () => {
@@ -31,8 +33,10 @@ const UserLayout = () => {
         <Outlet /> {/* এখানে Home, Topup, Contact এগুলো লোড হবে */}
       </main>
       <Footer />
-      {/* WhatsApp Floating Button - এটি সব পেজে দেখা যাবে */}
+      
+      {/* ফ্লোটিং বাটন এবং ইনস্টল ব্যানার - এগুলো সব পেজে দেখা যাবে */}
       <WhatsAppFloat />
+      <InstallBanner /> {/* 👈 এখানে ইনস্টল ব্যানার যুক্ত করা হলো */}
     </div>
   );
 };
@@ -60,6 +64,7 @@ function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="slider" element={<AdminSlider />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="promo" element={<AdminPromo />} /> 
         </Route>
 
         {/* 404 Not Found Route (এটি অবশ্যই সবার শেষে থাকতে হবে) */}

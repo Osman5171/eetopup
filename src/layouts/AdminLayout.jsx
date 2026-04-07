@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Users, CreditCard, Settings, LogOut, Menu, X, Package, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { 
+  LayoutDashboard, ShoppingCart, Users, CreditCard, 
+  Settings, LogOut, Menu, X, Package, 
+  Image as ImageIcon, Loader2, Tag 
+} from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const AdminLayout = () => {
@@ -35,7 +39,7 @@ const AdminLayout = () => {
       setIsAdmin(true);
     } else {
       alert('Access Denied! You are not an admin. ⛔');
-      navigate('/'); // অ্যাডমিন না হলে হোমপেজে পাঠিয়ে দিবে
+      navigate('/'); // অ্যাডমিন না হলে হোমপেজে পাঠিয়ে দিবে
     }
     setLoading(false);
   };
@@ -47,12 +51,16 @@ const AdminLayout = () => {
     }
   };
 
+  // 👈 এখানে নতুন মেনুগুলো (Users, Settings, Promo Codes) অ্যাড করা হয়েছে
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin' },
     { name: 'Orders', icon: <ShoppingCart size={20} />, path: '/admin/orders' },
     { name: 'Deposits', icon: <CreditCard size={20} />, path: '/admin/deposits' },
     { name: 'Packages', icon: <Package size={20} />, path: '/admin/packages' },
+    { name: 'Users', icon: <Users size={20} />, path: '/admin/users' },
+    { name: 'Promo Codes', icon: <Tag size={20} />, path: '/admin/promo' },
     { name: 'Slider', icon: <ImageIcon size={20} />, path: '/admin/slider' },
+    { name: 'Settings', icon: <Settings size={20} />, path: '/admin/settings' },
   ];
 
   if (loading) {
@@ -64,7 +72,7 @@ const AdminLayout = () => {
     );
   }
 
-  // যদি অ্যাডমিন না হয়, তবে নিচের কিছুই রেন্ডার হবে না (নিরাপদ)
+  // যদি অ্যাডমিন না হয়, তবে নিচের কিছুই রেন্ডার হবে না (নিরাপদ)
   if (!isAdmin) return null;
 
   return (
