@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'; // 👈 useState যুক্ত করা হয়েছে
+import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import OneSignal from 'react-onesignal';
-import { supabase } from './supabaseClient'; // 👈 supabase ইমপোর্ট নিশ্চিত করুন
+import { supabase } from './supabaseClient';
 
 // User Components
 import Header from './components/Header';
@@ -16,7 +16,7 @@ import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
-import Maintenance from './pages/Maintenance'; // 👈 মেইনটেন্যান্স পেজ ইমপোর্ট
+import Maintenance from './pages/Maintenance';
 
 // Admin Components & Layout
 import AdminLayout from './layouts/AdminLayout';
@@ -28,7 +28,6 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminSlider from './pages/admin/AdminSlider';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminPromo from './pages/admin/AdminPromo';
-import AdminActivityLogs from './pages/admin/AdminActivityLogs'; // 👈 এটিও যুক্ত করে দিলাম
 
 // সাধারণ ইউজারদের লেআউট
 const UserLayout = () => {
@@ -49,13 +48,12 @@ function App() {
   const [maintenance, setMaintenance] = useState({ active: false, endTime: null });
   const [loading, setLoading] = useState(true);
 
-  // ১. OneSignal এবং মেইনটেন্যান্স চেক
   useEffect(() => {
     // OneSignal শুরু করা
     const runOneSignal = async () => {
       try {
         await OneSignal.init({
-          appId: "YOUR_ONESIGNAL_APP_ID_HERE", 
+          appId: "YOUR_ONESIGNAL_APP_ID_HERE", // ⚠️ এখানে আপনার OneSignal App ID বসাবেন
           allowLocalhostAsSecureOrigin: true,
           notifyButton: { enable: true },
         });
@@ -64,7 +62,6 @@ function App() {
     };
     runOneSignal();
 
-    // মেইনটেন্যান্স স্ট্যাটাস চেক করা
     fetchSettings();
   }, []);
 
@@ -84,10 +81,8 @@ function App() {
     }
   };
 
-  // ডাটা লোড হওয়ার আগে কিছু দেখাবে না
   if (loading) return null;
 
-  // ২. মেইনটেন্যান্স অন থাকলে শুধু এই পেজটিই দেখাবে
   if (maintenance.active) {
     return <Maintenance endTime={maintenance.endTime} />;
   }
@@ -117,7 +112,6 @@ function App() {
           <Route path="slider" element={<AdminSlider />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="promo" element={<AdminPromo />} /> 
-          <Route path="logs" element={<AdminActivityLogs />} />
         </Route>
 
         {/* 404 Not Found Route */}
