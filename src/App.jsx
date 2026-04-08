@@ -4,6 +4,7 @@ import OneSignal from 'react-onesignal';
 import { supabase } from './supabaseClient';
 
 // User Components
+import ThemePreview from './pages/ThemePreview';
 import AdminBrands from './pages/admin/AdminBrands';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
@@ -97,7 +98,8 @@ function App() {
       <Routes>
         
         {/* User Der Jonno Routes */}
-        <Route element={<UserLayout />}>
+          <Route path="/preview" element={<ThemePreview />} />
+          <Route element={<UserLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
