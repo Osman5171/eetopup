@@ -5,13 +5,14 @@ import { supabase } from '../../supabaseClient';
 const AdminPackages = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [packages, setPackages] = useState([]);
+  const [brands, setBrands] = useState([]); // 👈 ব্র্যান্ড সেভ করার জন্য নতুন স্টেট
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   // ফর্মের ডাটা রাখার জন্য State
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    category: 'Free Fire',
+    category: '', // 👈 এটি এখন ডাইনামিক হবে
     name: '',
     buy_price: '',
     sell_price: '',
@@ -20,6 +21,7 @@ const AdminPackages = () => {
 
   useEffect(() => {
     fetchPackages();
+    fetchBrands(); // 👈 পেজ লোড হওয়ার সাথে সাথে ব্র্যান্ডগুলো নিয়ে আসবে
   }, []);
 
   // ১. ডাটাবেস থেকে প্যাকেজগুলো আনা
@@ -36,9 +38,30 @@ const AdminPackages = () => {
     setLoading(false);
   };
 
-  // ২. নতুন প্যাকেজ সেভ করা বা আপডেট করা
+  // ২. ডাটাবেস থেকে ব্র্যান্ডগুলো আনা (Category Dropdown এর জন্য)
+  const fetchBrands = async () => {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .eq('status', 'Active') // শুধু অ্যাক্টিভ ব্র্যান্ডগুলো আনবে
+      .order('name', { ascending: true });
+
+    if (data) {
+      setBrands(data);
+      // ডিফল্টভাবে প্রথম ব্র্যান্ডটি ক্যাটাগরি হিসেবে সিলেক্ট করে রাখবে
+      if (data.length > 0) {
+        setFormData(prev => ({ ...prev, category: data[0].name }));
+      }
+    }
+  };
+
+  // ৩. নতুন প্যাকেজ সেভ করা বা আপডেট করা
   const handleSavePackage = async (e) => {
     e.preventDefault();
+    if (!formData.category) {
+      alert("দয়া করে আগে একটি ব্র্যান্ড/ক্যাটাগরি তৈরি করুন!");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -83,7 +106,7 @@ const AdminPackages = () => {
     }
   };
 
-  // ৩. প্যাকেজ ডিলিট করা
+  // ৪. প্যাকেজ ডিলিট করা
   const handleDelete = async (id, name) => {
     if(!window.confirm(`আপনি কি "${name}" প্যাকেজটি ডিলিট করতে চান?`)) return;
     
@@ -98,7 +121,7 @@ const AdminPackages = () => {
     }
   };
 
-  // Edit বাটনে ক্লিক করলে ফর্ম ফিলআপ হয়ে যাবে
+  // Edit বাটনে ক্লিক করলে ফর্ম ফিলআপ হয়ে যাবে
   const openEditModal = (pkg) => {
     setFormData({
       category: pkg.category,
@@ -113,7 +136,13 @@ const AdminPackages = () => {
 
   // Modal বন্ধ করার ফাংশন
   const closeModal = () => {
-    setFormData({ category: 'Free Fire', name: '', buy_price: '', sell_price: '', status: 'Active' });
+    setFormData({ 
+      category: brands.length > 0 ? brands[0].name : '', 
+      name: '', 
+      buy_price: '', 
+      sell_price: '', 
+      status: 'Active' 
+    });
     setEditingId(null);
     setIsModalOpen(false);
   };
@@ -148,7 +177,7 @@ const AdminPackages = () => {
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                 <th className="p-4 font-medium">Package Name</th>
-                <th className="p-4 font-medium">Category</th>
+                <th className="p-4 font-medium">Brand / Category</th>
                 <th className="p-4 font-medium">Buy Price</th>
                 <th className="p-4 font-medium">Sell Price</th>
                 <th className="p-4 font-medium">Profit</th>
@@ -208,16 +237,23 @@ const AdminPackages = () => {
             
             <form onSubmit={handleSavePackage} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Brand / Category</label>
                 <select 
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]"
+                  required
                 >
-                  <option value="Free Fire">Free Fire</option>
-                  <option value="PUBG Mobile">PUBG Mobile</option>
-                  <option value="Clash of Clans">Clash of Clans</option>
-                  <option value="Social Media">Social Media</option>
+                  {/* 👈 ডাটাবেস থেকে আসা ব্র্যান্ডগুলো এখানে ডাইনামিক্যালি রেন্ডার হচ্ছে */}
+                  {brands.length > 0 ? (
+                    brands.map((brand) => (
+                      <option key={brand.id} value={brand.name}>
+                        {brand.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No Active Brands Found</option>
+                  )}
                 </select>
               </div>
               
