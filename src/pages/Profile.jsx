@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom'; // 👈 এখানে Link ইমপোর্ট করা হয়েছে
+import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck } from 'lucide-react'; // 👈 ShieldCheck ইমপোর্ট করা হয়েছে
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 const Profile = () => {
@@ -14,7 +14,8 @@ const Profile = () => {
     name: '',
     email: '',
     phone: '',
-    balance: 0
+    balance: 0,
+    isAdmin: false // 👈 অ্যাডমিন চেক করার জন্য
   });
 
   const [orderHistory, setOrderHistory] = useState([]);
@@ -26,7 +27,7 @@ const Profile = () => {
   const fetchUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    // লগিন করা না থাকলে auth পেজে পাঠিয়ে দিবে
+    // লগিন করা না থাকলে auth পেজে পাঠিয়ে দিবে
     if (!session) {
       navigate('/auth');
       return;
@@ -47,7 +48,9 @@ const Profile = () => {
         name: profile.full_name || '',
         email: user.email,
         phone: profile.phone || profile.whatsapp || '', 
-        balance: profile.balance || 0
+        balance: profile.balance || 0,
+        // আপনার ডাটাবেসে role বা is_admin কলাম থাকলে সেটি চেক করবে
+        isAdmin: profile.role === 'admin' || profile.is_admin === true 
       });
     }
 
@@ -87,7 +90,7 @@ const Profile = () => {
   const handleLogout = async () => {
     if(window.confirm('Are you sure you want to logout?')) {
       await supabase.auth.signOut();
-      navigate('/'); // লগআউট হলে হোম পেজে চলে যাবে
+      navigate('/'); 
     }
   };
 
@@ -138,6 +141,22 @@ const Profile = () => {
             <Wallet size={100} className="absolute -bottom-6 -right-6 text-white opacity-10" />
           </div>
 
+          {/* 👈 Admin Dashboard Button (Only visible if user is admin) */}
+          {userData.isAdmin && (
+            <Link to="/admin" className="w-full bg-gradient-to-r from-[#0a1930] to-gray-900 text-white p-4 rounded-xl flex items-center justify-between shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-lg transition-all group border border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-500/20 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="text-[#fbbf24]" size={24} />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-[#fbbf24]">Admin Dashboard</h3>
+                  <p className="text-[10px] text-gray-400">Manage packages & users</p>
+                </div>
+              </div>
+              <span className="text-[#fbbf24] font-black group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+          )}
+
           {/* Navigation Menu */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <button 
@@ -187,14 +206,14 @@ const Profile = () => {
                       {orderHistory.length > 0 ? (
                         orderHistory.map((order) => (
                           <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                            <td className="p-3 text-sm font-semibold text-gray-700">#ORD-{order.id}</td>
+                            <td className="p-3 text-sm font-semibold text-gray-700">#ORD-{order.id.slice(0, 6)}</td>
                             <td className="p-3 text-sm text-[#0a1930] font-bold">{order.package_name}</td>
                             <td className="p-3 text-sm text-gray-500">
                               {new Date(order.created_at).toLocaleDateString('en-GB')}
                             </td>
                             <td className="p-3 text-sm text-[#0052FF] font-bold">৳{order.amount}</td>
                             <td className="p-3 text-sm text-right">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 order.status === 'completed' ? 'bg-green-100 text-green-700' : 
                                 order.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                               }`}>

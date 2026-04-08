@@ -4,6 +4,8 @@ import OneSignal from 'react-onesignal';
 import { supabase } from './supabaseClient';
 
 // User Components
+import AdminBrands from './pages/admin/AdminBrands';
+import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import WhatsAppFloat from './components/WhatsAppFloat';
@@ -19,6 +21,7 @@ import Privacy from './pages/Privacy';
 import Maintenance from './pages/Maintenance';
 
 // Admin Components & Layout
+import { LayoutGrid } from 'lucide-react';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
@@ -103,6 +106,7 @@ function App() {
         </Route>
 
         {/* Admin Der Jonno Routes */}
+        <Route path="brands" element={<AdminBrands />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} /> 
           <Route path="orders" element={<AdminOrders />} />

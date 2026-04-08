@@ -1,27 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { MessageCircle } from 'lucide-react';
-import { supabase } from '../supabaseClient';
 
 const WhatsAppFloat = () => {
-  const [link, setLink] = useState('#');
-
-  useEffect(() => {
-    const getLink = async () => {
-      const { data } = await supabase.from('settings').select('whatsapp_link').eq('id', 1).single();
-      if (data) setLink(data.whatsapp_link);
-    };
-    getLink();
-  }, []);
-
   return (
     <a 
-      href={link} 
+      href="https://wa.me/+8801343202970" // ⚠️ Ekhane apnar number diben
       target="_blank" 
-      rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-[100] bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform duration-300 animate-bounce"
-      title="Contact on WhatsApp"
+      rel="noreferrer"
+      className="fixed top-1/2 right-0 -translate-y-1/2 bg-[#0052FF] text-white p-3 rounded-l-xl shadow-[-5px_5px_15px_rgba(0,82,255,0.3)] flex flex-col items-center justify-center gap-1 z-50 hover:bg-blue-700 transition-all group"
     >
-      <MessageCircle size={30} fill="currentColor" />
+      <MessageCircle size={24} className="animate-pulse" />
+      {/* Text ti lamba-lambi vabe thakbe */}
+      <span className="text-[10px] font-bold hidden md:block" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+        SUPPORT
+      </span>
     </a>
   );
 };

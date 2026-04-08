@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Users, CreditCard, 
   Settings, LogOut, Menu, X, Package, 
-  Image as ImageIcon, Loader2, Tag 
+  Image as ImageIcon, Loader2, Tag, LayoutGrid // 👈 LayoutGrid আইকনটি এখানে যোগ করা হয়েছে
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -51,11 +51,12 @@ const AdminLayout = () => {
     }
   };
 
-  // 👈 এখানে নতুন মেনুগুলো (Users, Settings, Promo Codes) অ্যাড করা হয়েছে
+  // 👈 মেনু লিস্টে Brands যোগ করা হয়েছে
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin' },
     { name: 'Orders', icon: <ShoppingCart size={20} />, path: '/admin/orders' },
     { name: 'Deposits', icon: <CreditCard size={20} />, path: '/admin/deposits' },
+    { name: 'Brands', icon: <LayoutGrid size={20} />, path: '/admin/brands' }, // 👈 এই লাইনটি যুক্ত হয়েছে
     { name: 'Packages', icon: <Package size={20} />, path: '/admin/packages' },
     { name: 'Users', icon: <Users size={20} />, path: '/admin/users' },
     { name: 'Promo Codes', icon: <Tag size={20} />, path: '/admin/promo' },
