@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // 👈 useSearchParams যোগ করা হয়েছে
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PaymentModal from '../components/PaymentModal';
 import { supabase } from '../supabaseClient';
 import { Loader2, Tag, CheckCircle2, XCircle } from 'lucide-react';
@@ -8,17 +8,19 @@ import { sendTelegramMessage, sendEmailNotification } from '../utils/notify';
 const Topup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const brandQuery = searchParams.get('brand'); // URL থেকে ব্র্যান্ডের নাম ধরা হচ্ছে
+  const productQuery = searchParams.get('product'); // URL থেকে প্রোডাক্টের নাম ধরা হচ্ছে
+  const brandQuery = searchParams.get('brand');
 
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('wallet');
   const [playerId, setPlayerId] = useState('');
   
-  // ডাইনামিক ব্র্যান্ড ইনফো
-  const [brandInfo, setBrandInfo] = useState({ 
-    name: 'Game Top Up', 
-    image_url: 'https://eagleeyetopup.com/ff.png' 
+  // ডাইনামিক প্রোডাক্ট ইনফো
+  const [productInfo, setProductInfo] = useState({ 
+    name: 'Loading...', 
+    brand_name: '',
+    image_url: 'https://eagleeyetopup.com/logo.png' 
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,7 +37,7 @@ const Topup = () => {
 
   useEffect(() => {
     fetchInitialData();
-  }, [brandQuery]);
+  }, [productQuery]);
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -46,25 +48,25 @@ const Topup = () => {
       if (profile) setUserBalance(profile.balance || 0);
     }
 
-    let targetBrand = brandQuery;
+    let targetProduct = productQuery;
 
-    // যদি কেউ সরাসরি /topup লিংকে আসে (কোনো ব্র্যান্ড সিলেক্ট না করে), তবে প্রথম অ্যাক্টিভ ব্র্যান্ডটি ডিফল্টভাবে দেখাবে
-    if (!targetBrand) {
-      const { data: firstBrand } = await supabase.from('brands').select('*').eq('status', 'Active').limit(1).single();
-      if (firstBrand) {
-        targetBrand = firstBrand.name;
-        setBrandInfo(firstBrand);
-      }
+    // URL থেকে প্রোডাক্টের তথ্য আনা
+    if (targetProduct) {
+      const { data: pData } = await supabase.from('products').select('*').eq('name', targetProduct).single();
+      if (pData) setProductInfo(pData);
     } else {
-      // URL এ ব্র্যান্ড থাকলে তার ডিটেইলস আনবে
-      const { data: bData } = await supabase.from('brands').select('*').eq('name', targetBrand).single();
-      if (bData) setBrandInfo(bData);
+      // যদি URL এ প্রোডাক্ট না থাকে তবে প্রথম প্রোডাক্টটি ডিফল্ট হিসেবে দেখাবে
+      const { data: firstProd } = await supabase.from('products').select('*').eq('status', 'Active').limit(1).single();
+      if (firstProd) {
+        targetProduct = firstProd.name;
+        setProductInfo(firstProd);
+      }
     }
 
-    // শুধুমাত্র সিলেক্ট করা ব্র্যান্ডের প্যাকেজগুলো ফিল্টার করে আনবে
+    // শুধুমাত্র সিলেক্ট করা 'প্রোডাক্টের' প্যাকেজগুলো ফিল্টার করে আনবে
     let pkgQuery = supabase.from('packages').select('*').eq('status', 'Active').order('sell_price', { ascending: true });
-    if (targetBrand) {
-      pkgQuery = pkgQuery.eq('category', targetBrand); // প্যাকেজ টেবিলের category কলামের সাথে ব্র্যান্ডের নাম মেলাবে
+    if (targetProduct) {
+      pkgQuery = pkgQuery.eq('product_name', targetProduct); 
     }
 
     const { data: pkgs } = await pkgQuery;
@@ -134,7 +136,6 @@ const Topup = () => {
     if (paymentMethod === 'instant') {
       setIsModalOpen(true); 
     } else {
-      // Wallet Payment Logic
       if(window.confirm(`আপনি কি ৳${finalPrice} দিয়ে ${currentPkg.name} কিনতে চান?`)) {
         setProcessing(true);
 
@@ -161,7 +162,7 @@ const Topup = () => {
         }
 
         if (!error) {
-          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n🎮 <b>ID:</b> <code>${playerId}</code>\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Category:</b> ${brandInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n🎮 <b>ID:</b> <code>${playerId}</code>\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Category:</b> ${productInfo.brand_name} - ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
           await sendTelegramMessage(telegramMsg);
 
           sendEmailNotification({
@@ -188,10 +189,10 @@ const Topup = () => {
       
       {/* 👈 Dynamic Product Header */}
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex items-center gap-4 mb-6">
-        <img src={brandInfo.image_url} alt={brandInfo.name} className="w-16 h-16 rounded object-cover bg-[#0a1930]"/>
+        <img src={productInfo.image_url} alt={productInfo.name} className="w-16 h-16 rounded object-cover bg-[#0a1930]"/>
         <div>
-          <h1 className="text-xl font-bold text-[#0a1930]">{brandInfo.name}</h1>
-          <p className="text-sm text-gray-500">Provide required information below</p>
+          <h1 className="text-xl font-bold text-[#0a1930]">{productInfo.name}</h1>
+          <p className="text-sm text-gray-500 font-medium text-[#0052FF]">{productInfo.brand_name}</p>
         </div>
       </div>
 
@@ -206,7 +207,7 @@ const Topup = () => {
             </h2>
             
             {packages.length === 0 ? (
-              <p className="text-red-500 text-center py-4">No active packages found for {brandInfo.name}!</p>
+              <p className="text-red-500 text-center py-4 font-bold">No active packages found for {productInfo.name}!</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {packages.map((pkg) => (
