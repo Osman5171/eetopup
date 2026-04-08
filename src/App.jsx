@@ -21,7 +21,6 @@ import Privacy from './pages/Privacy';
 import Maintenance from './pages/Maintenance';
 
 // Admin Components & Layout
-import { LayoutGrid } from 'lucide-react';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
@@ -56,7 +55,7 @@ function App() {
     const runOneSignal = async () => {
       try {
         await OneSignal.init({
-          appId: "YOUR_ONESIGNAL_APP_ID_HERE", // ⚠️ এখানে আপনার OneSignal App ID বসাবেন
+          appId: "e880ec17-fedf-4994-848d-73810e36f442", // ⚠️ এখানে আপনার OneSignal App ID বসাবেন
           allowLocalhostAsSecureOrigin: true,
           notifyButton: { enable: true },
         });
