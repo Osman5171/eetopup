@@ -3,7 +3,7 @@ name: 🚀 Deploy Top-up to aaPanel VPS
 on:
   push:
     branches:
-      - main # আপনার গিটহাব ব্রাঞ্চের নাম main না হয়ে master হলে এখানে master দিবেন
+      - main
 
 jobs:
   web-deploy:
@@ -24,7 +24,6 @@ jobs:
 
       - name: 🏗️ Build Project
         env:
-          # আপনার টপ-আপ প্রজেক্টের জন্য শুধুমাত্র Supabase এর Key গুলোই যথেষ্ট
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
@@ -33,7 +32,8 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          ARGS: "-avzr --delete"
+          # 👇 এখানে --exclude দিয়ে .user.ini কে স্কিপ করা হয়েছে
+          ARGS: "-avzr --delete --exclude='.user.ini' --exclude='.htaccess'"
           SOURCE: "dist/"
           REMOTE_HOST: ${{ secrets.SERVER_HOST }}
           REMOTE_USER: ${{ secrets.SERVER_USER }}
