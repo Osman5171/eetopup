@@ -21,6 +21,7 @@ import Privacy from './pages/Privacy';
 import Maintenance from './pages/Maintenance';
 
 // Admin Components & Layout
+import AdminProducts from './pages/admin/AdminProducts';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
@@ -112,6 +113,7 @@ function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="deposits" element={<AdminDeposits />} />
           <Route path="brands" element={<AdminBrands />} /> {/* 👈 এটিকে সঠিক জায়গায় /admin এর ভেতরে আনা হয়েছে */}
+          <Route path="products" element={<AdminProducts />} />
           <Route path="packages" element={<AdminPackages />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="slider" element={<AdminSlider />} />
