@@ -34,7 +34,8 @@ import AdminPromo from './pages/admin/AdminPromo';
 // সাধারণ ইউজারদের লেআউট
 const UserLayout = () => {
   return (
-    <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col">
+    // 👈 pb-16 যোগ করা হয়েছে যাতে নিচের BottomNav এর নিচে কন্টেন্ট না ঢোকে
+    <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col pb-16 md:pb-0">
       <Header />
       <main className="container mx-auto px-4 pb-12 flex-grow">
         <Outlet />
@@ -42,6 +43,7 @@ const UserLayout = () => {
       <Footer />
       <WhatsAppFloat />
       <InstallBanner /> 
+      <BottomNav /> {/* 👈 BottomNav এখানে যুক্ত করা হয়েছে */}
     </div>
   );
 };
@@ -55,7 +57,7 @@ function App() {
     const runOneSignal = async () => {
       try {
         await OneSignal.init({
-          appId: "e880ec17-fedf-4994-848d-73810e36f442", // ⚠️ এখানে আপনার OneSignal App ID বসাবেন
+          appId: "e880ec17-fedf-4994-848d-73810e36f442", 
           allowLocalhostAsSecureOrigin: true,
           notifyButton: { enable: true },
         });
@@ -105,11 +107,11 @@ function App() {
         </Route>
 
         {/* Admin Der Jonno Routes */}
-        <Route path="brands" element={<AdminBrands />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} /> 
           <Route path="orders" element={<AdminOrders />} />
           <Route path="deposits" element={<AdminDeposits />} />
+          <Route path="brands" element={<AdminBrands />} /> {/* 👈 এটিকে সঠিক জায়গায় /admin এর ভেতরে আনা হয়েছে */}
           <Route path="packages" element={<AdminPackages />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="slider" element={<AdminSlider />} />
