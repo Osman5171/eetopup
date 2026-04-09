@@ -36,7 +36,7 @@ const Home = () => {
       <div className="mt-12">
         {loading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-[#0052FF]" size={40} />
+            <Loader2 className="animate-spin text-[#8B5CF6]" size={40} />
           </div>
         ) : brands.length > 0 ? (
           brands.map((brand) => {
@@ -49,13 +49,13 @@ const Home = () => {
             return (
               <div key={brand.id} className="mb-12">
                 
-                {/* 👈 Brand Heading (যেমন: Free Fire) */}
+                {/* 👈 Brand Heading (White text for dark theme) */}
                 <div className="flex items-center justify-center gap-3 mb-8">
-                  {brand.image_url && <img src={brand.image_url} alt={brand.name} className="w-8 h-8 rounded-md bg-[#0a1930] object-cover" />}
-                  <h2 className="text-center text-2xl font-black text-[#0a1930] uppercase tracking-wider">{brand.name}</h2>
+                  {brand.image_url && <img src={brand.image_url} alt={brand.name} className="w-8 h-8 rounded-md bg-[#1E293B] object-cover" />}
+                  <h2 className="text-center text-2xl font-black text-white uppercase tracking-wider">{brand.name}</h2>
                 </div>
                 
-                {/* 👈 Products Grid (যেমন: Diamond Top Up, Weekly) */}
+                {/* 👈 Products Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                   {brandProducts.map((product) => (
                     <Link 
@@ -63,14 +63,16 @@ const Home = () => {
                       key={product.id} 
                       className="flex flex-col items-center cursor-pointer group"
                     >
-                      <div className="bg-gradient-to-b from-[#0052FF] to-[#002f99] p-[2px] rounded-2xl shadow-lg transition transform group-hover:-translate-y-1">
+                      {/* 👈 Purple Gradient Border and Glow Effect */}
+                      <div className="bg-gradient-to-b from-[#8B5CF6] to-[#4C1D95] p-[2px] rounded-2xl shadow-[0_0_15px_rgba(139,92,246,0.2)] transition transform group-hover:-translate-y-1 group-hover:shadow-[0_0_25px_rgba(139,92,246,0.5)]">
                         <img 
                           src={product.image_url || brand.image_url} 
                           alt={product.name} 
-                          className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-2xl bg-[#0a1930]" 
+                          className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-2xl bg-[#1E293B]" 
                         />
                       </div>
-                      <p className="mt-3 text-sm md:text-base font-bold text-[#0a1930] text-center px-1">
+                      {/* 👈 Light text that turns white on hover */}
+                      <p className="mt-3 text-sm md:text-base font-bold text-gray-300 text-center px-1 group-hover:text-white transition-colors">
                         {product.name}
                       </p>
                     </Link>
@@ -81,7 +83,7 @@ const Home = () => {
             );
           })
         ) : (
-          <p className="text-center text-gray-500 font-bold bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <p className="text-center text-gray-400 font-bold bg-[#1E293B] p-6 rounded-xl shadow-sm border border-gray-800">
             No services available right now.
           </p>
         )}

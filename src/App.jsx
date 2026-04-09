@@ -4,8 +4,6 @@ import OneSignal from 'react-onesignal';
 import { supabase } from './supabaseClient';
 
 // User Components
-import ThemePreview from './pages/ThemePreview';
-import AdminBrands from './pages/admin/AdminBrands';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -22,6 +20,7 @@ import Privacy from './pages/Privacy';
 import Maintenance from './pages/Maintenance';
 
 // Admin Components & Layout
+import AdminBrands from './pages/admin/AdminBrands';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -33,11 +32,11 @@ import AdminSlider from './pages/admin/AdminSlider';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminPromo from './pages/admin/AdminPromo';
 
-// সাধারণ ইউজারদের লেআউট
+// সাধারণ ইউজারদের লেআউট (এখানে ডার্ক থিমের ব্যাকগ্রাউন্ড দেওয়া হয়েছে)
 const UserLayout = () => {
   return (
-    // 👈 pb-16 যোগ করা হয়েছে যাতে নিচের BottomNav এর নিচে কন্টেন্ট না ঢোকে
-    <div className="min-h-screen bg-[#f4f7fb] font-sans flex flex-col pb-16 md:pb-0">
+    // 👈 bg-[#0F172A] (Dark) এবং text-white যোগ করা হয়েছে
+    <div className="min-h-screen bg-[#0F172A] text-white font-sans flex flex-col pb-16 md:pb-0">
       <Header />
       <main className="container mx-auto px-4 pb-12 flex-grow">
         <Outlet />
@@ -45,7 +44,7 @@ const UserLayout = () => {
       <Footer />
       <WhatsAppFloat />
       <InstallBanner /> 
-      <BottomNav /> {/* 👈 BottomNav এখানে যুক্ত করা হয়েছে */}
+      <BottomNav />
     </div>
   );
 };
@@ -55,7 +54,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // OneSignal শুরু করা
     const runOneSignal = async () => {
       try {
         await OneSignal.init({
@@ -96,10 +94,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        
-        {/* User Der Jonno Routes */}
-          <Route path="/preview" element={<ThemePreview />} />
-          <Route element={<UserLayout />}>
+
+        {/* User Der Jonno Routes (ডুপ্লিকেট রিমুভ করা হয়েছে) */}
+        <Route element={<UserLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
@@ -114,7 +111,7 @@ function App() {
           <Route index element={<AdminDashboard />} /> 
           <Route path="orders" element={<AdminOrders />} />
           <Route path="deposits" element={<AdminDeposits />} />
-          <Route path="brands" element={<AdminBrands />} /> {/* 👈 এটিকে সঠিক জায়গায় /admin এর ভেতরে আনা হয়েছে */}
+          <Route path="brands" element={<AdminBrands />} /> 
           <Route path="products" element={<AdminProducts />} />
           <Route path="packages" element={<AdminPackages />} />
           <Route path="users" element={<AdminUsers />} />
