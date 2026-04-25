@@ -16,7 +16,6 @@ const Topup = () => {
   const [paymentMethod, setPaymentMethod] = useState('wallet');
   const [playerId, setPlayerId] = useState('');
   
-  // 👈 Quantity State যুক্ত করা হয়েছে
   const [quantity, setQuantity] = useState(1);
   
   const [productInfo, setProductInfo] = useState({ 
@@ -37,7 +36,6 @@ const Topup = () => {
   const [promoStatus, setPromoStatus] = useState(null);
   const [promoMessage, setPromoMessage] = useState('');
 
-  // 👈 এটি ভাউচার কিনা চেক করা হচ্ছে
   const isVoucher = productInfo?.product_type === 'Voucher';
 
   useEffect(() => {
@@ -84,8 +82,6 @@ const Topup = () => {
 
   const currentPkg = packages.find(p => p.id === selectedPackage);
   const currentPrice = currentPkg?.sell_price || 0;
-  
-  // 👈 প্রাইস ক্যালকুলেশন (Price x Quantity)
   const subTotal = currentPrice * quantity;
   const finalPrice = Math.max(0, subTotal - discount);
 
@@ -121,8 +117,8 @@ const Topup = () => {
   };
 
   const handleBuyNow = async () => {
-    // ভ্যালিডেশন
     if (!isVoucher && !playerId) return alert("দয়া করে আপনার Player ID দিন!");
+    if (isVoucher && !playerId) return alert("দয়া করে ডেলিভারির জন্য WhatsApp/Email দিন!"); // 👈 Added Validation
     if (!selectedPackage) return alert("দয়া করে একটি প্যাকেজ সিলেক্ট করুন!");
     if (!user) {
       alert("অর্ডার করতে হলে আগে লগিন করতে হবে!");
@@ -145,7 +141,8 @@ const Topup = () => {
         await supabase.from('profiles').update({ balance: newBalance }).eq('id', user.id);
 
         const orderPackageName = isVoucher ? `${currentPkg.name} (x${quantity})` : currentPkg.name;
-        const orderPlayerId = isVoucher ? `Voucher Qty: ${quantity}` : playerId;
+        // 👈 FIX: Now it saves the user's WhatsApp number + Quantity in Database
+        const orderPlayerId = isVoucher ? `Contact: ${playerId} | Qty: ${quantity}` : playerId;
 
         const { error } = await supabase.from('orders').insert({
           user_id: user.id,
@@ -161,7 +158,7 @@ const Topup = () => {
         }
 
         if (!error) {
-          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Product:</b> ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Product:</b> ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
           await sendTelegramMessage(telegramMsg);
 
           sendEmailNotification({ user_email: user.email, player_id: orderPlayerId, package: orderPackageName, amount: finalPrice });
@@ -181,7 +178,6 @@ const Topup = () => {
   return (
     <div className="w-full mt-6 relative animate-fade-in-up">
       
-      {/* Product Header */}
       <div className="bg-[#1E293B] rounded-2xl p-4 shadow-lg border border-[#334155] flex items-center gap-4 mb-6">
         <img src={productInfo.image_url} alt={productInfo.name} className="w-16 h-16 rounded-xl object-cover bg-[#0F172A]"/>
         <div>
@@ -192,7 +188,6 @@ const Topup = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column - Packages */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
             <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
@@ -223,14 +218,26 @@ const Topup = () => {
           </div>
         </div>
 
-        {/* Right Column - Info & Payment */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           
-          {/* 👈 ম্যাজিক: ভাউচার হলে Quantity দেখাবে, না হলে Player ID চাইবে */}
-          {isVoucher ? (
+          {/* Account/Voucher Info Section */}
+          <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
+            <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
+              <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
+              {isVoucher ? "Delivery Info" : "Account Info"}
+            </h2>
+            <input 
+              type="text" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
+              placeholder={isVoucher ? "WhatsApp Number or Email..." : "এখানে Player ID/Info দিন..."} 
+              className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
+            />
+          </div>
+
+          {/* Quantity Section (Only for Vouchers) */}
+          {isVoucher && (
             <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155] flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
+                <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">Q</span>
                 Quantity
               </h2>
               
@@ -249,18 +256,6 @@ const Topup = () => {
                   <Plus size={16}/>
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
-              <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
-                <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
-                Account Info
-              </h2>
-              <input 
-                type="text" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
-                placeholder="এখানে Player ID/Info দিন..." 
-                className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
-              />
             </div>
           )}
 
