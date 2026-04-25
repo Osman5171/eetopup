@@ -25,6 +25,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
+import AdminVouchers from './pages/admin/AdminVouchers';
 import AdminDeposits from './pages/admin/AdminDeposits';
 import AdminPackages from './pages/admin/AdminPackages';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -110,6 +111,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} /> 
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="vouchers" element={<AdminVouchers />} />
           <Route path="deposits" element={<AdminDeposits />} />
           <Route path="brands" element={<AdminBrands />} /> 
           <Route path="products" element={<AdminProducts />} />
