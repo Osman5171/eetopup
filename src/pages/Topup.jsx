@@ -118,7 +118,7 @@ const Topup = () => {
 
   const handleBuyNow = async () => {
     if (!isVoucher && !playerId) return alert("দয়া করে আপনার Player ID দিন!");
-    if (isVoucher && !playerId) return alert("দয়া করে ডেলিভারির জন্য WhatsApp/Email দিন!"); // 👈 Added Validation
+    if (isVoucher && !playerId) return alert("দয়া করে ডেলিভারির জন্য WhatsApp/Email দিন!");
     if (!selectedPackage) return alert("দয়া করে একটি প্যাকেজ সিলেক্ট করুন!");
     if (!user) {
       alert("অর্ডার করতে হলে আগে লগিন করতে হবে!");
@@ -137,20 +137,50 @@ const Topup = () => {
           return;
         }
 
+        // 👈 অটোমেটিক ভাউচার ডেলিভারি লজিক শুরু
+        let orderStatus = 'pending';
+        let assignedVouchers = null;
+
+        if (isVoucher) {
+            const match = currentPkg.name.match(/\d+/);
+            const upVal = match ? match[0] : null;
+
+            if (upVal) {
+                const { data: availableVouchers } = await supabase
+                    .from('vouchers')
+                    .select('*')
+                    .eq('status', 'available')
+                    .ilike('type', `${upVal} UP%`)
+                    .limit(quantity);
+
+                if (availableVouchers && availableVouchers.length === quantity) {
+                    const vIds = availableVouchers.map(v => v.id);
+                    await supabase.from('vouchers').update({ status: 'sold' }).in('id', vIds);
+                    assignedVouchers = availableVouchers.map(v => v.code).join('\n\n');
+                    orderStatus = 'completed'; // স্টক থাকলে সাথে সাথে Complete
+                }
+            }
+        }
+        // 👈 অটোমেটিক ভাউচার ডেলিভারি লজিক শেষ
+
         const newBalance = userBalance - finalPrice;
         await supabase.from('profiles').update({ balance: newBalance }).eq('id', user.id);
 
         const orderPackageName = isVoucher ? `${currentPkg.name} (x${quantity})` : currentPkg.name;
-        // 👈 FIX: Now it saves the user's WhatsApp number + Quantity in Database
         const orderPlayerId = isVoucher ? `Contact: ${playerId} | Qty: ${quantity}` : playerId;
+        
+        // Buy price calculation
+        const totalBuyPrice = (currentPkg.buy_price || 0) * (isVoucher ? quantity : 1);
 
         const { error } = await supabase.from('orders').insert({
           user_id: user.id,
           package_name: orderPackageName + (discount > 0 ? ` (Promo: ${promoCode})` : ''),
           player_id: orderPlayerId, 
           amount: finalPrice,
+          buy_price: totalBuyPrice, // 👈 Saving Buy Price
           payment_method: 'Wallet',
-          status: 'pending' 
+          status: orderStatus, // pending or completed
+          voucher_code: assignedVouchers 
         });
 
         if (discount > 0 && promoCode) {
@@ -158,12 +188,16 @@ const Topup = () => {
         }
 
         if (!error) {
-          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Product:</b> ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n🚀 <b>Status:</b> ${orderStatus.toUpperCase()}`;
           await sendTelegramMessage(telegramMsg);
 
           sendEmailNotification({ user_email: user.email, player_id: orderPlayerId, package: orderPackageName, amount: finalPrice });
 
-          alert("আপনার অর্ডারটি সফলভাবে প্লেস করা হয়েছে! ✅");
+          if (orderStatus === 'completed') {
+              alert("অর্ডারটি সফল হয়েছে এবং ভাউচার কোড আপনার প্রোফাইলে ডেলিভারি করা হয়েছে! ✅");
+          } else {
+              alert("আপনার অর্ডারটি পেন্ডিং এ আছে! (খুব শীঘ্রই ডেলিভারি দেওয়া হবে) ⏳");
+          }
           navigate('/profile'); 
         } else {
           alert("Error: " + error.message);
@@ -220,42 +254,47 @@ const Topup = () => {
 
         <div className="lg:col-span-5 flex flex-col gap-6">
           
-          {/* Account/Voucher Info Section */}
-          <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
-            <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
-              <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
-              {isVoucher ? "Delivery Info" : "Account Info"}
-            </h2>
-            <input 
-              type="text" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
-              placeholder={isVoucher ? "WhatsApp Number or Email..." : "এখানে Player ID/Info দিন..."} 
-              className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
-            />
-          </div>
-
-          {/* Quantity Section (Only for Vouchers) */}
-          {isVoucher && (
+          {isVoucher ? (
             <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155] flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-3">
                 <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">Q</span>
                 Quantity
               </h2>
-              
               <div className="flex items-center gap-4 bg-[#0F172A] rounded-xl p-1.5 border border-[#334155]">
-                <button 
-                  onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} 
-                  className="w-8 h-8 flex justify-center items-center text-white bg-[#1E293B] rounded-lg hover:bg-gray-700 transition shadow-sm"
-                >
+                <button onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} className="w-8 h-8 flex justify-center items-center text-white bg-[#1E293B] rounded-lg hover:bg-gray-700 transition shadow-sm">
                   <Minus size={16}/>
                 </button>
                 <span className="font-black text-white w-6 text-center text-lg">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(q => q + 1)} 
-                  className="w-8 h-8 flex justify-center items-center text-white bg-[#1E293B] rounded-lg hover:bg-gray-700 transition shadow-sm"
-                >
+                <button onClick={() => setQuantity(q => q + 1)} className="w-8 h-8 flex justify-center items-center text-white bg-[#1E293B] rounded-lg hover:bg-gray-700 transition shadow-sm">
                   <Plus size={16}/>
                 </button>
               </div>
+            </div>
+          ) : (
+            <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
+              <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
+                <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
+                Account Info
+              </h2>
+              <input 
+                type="text" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
+                placeholder="এখানে Player ID/Info দিন..." 
+                className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
+              />
+            </div>
+          )}
+
+          {isVoucher && (
+            <div className="bg-[#1E293B] rounded-2xl p-5 shadow-lg border border-[#334155]">
+              <h2 className="text-lg font-bold text-white flex items-center gap-3 border-b border-[#334155] pb-3 mb-4">
+                <span className="bg-[#8B5CF6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]">2</span>
+                Delivery Info
+              </h2>
+              <input 
+                type="text" value={playerId} onChange={(e) => setPlayerId(e.target.value)}
+                placeholder="WhatsApp Number or Email..." 
+                className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
+              />
             </div>
           )}
 
