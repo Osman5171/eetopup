@@ -14,6 +14,7 @@ const AdminProducts = () => {
     brand_name: '',
     name: '',
     image_url: '',
+    product_type: 'Top Up', // 👈 নতুন ফিল্ড: Product Type
     status: 'Active'
   });
 
@@ -47,9 +48,11 @@ const AdminProducts = () => {
       if (editingId) {
         const { error } = await supabase.from('products').update(formData).eq('id', editingId);
         if (error) throw error;
+        alert("Product Updated! ✅");
       } else {
         const { error } = await supabase.from('products').insert([formData]);
         if (error) throw error;
+        alert("Product Created! 🎉");
       }
       closeModal();
       fetchProducts();
@@ -73,10 +76,22 @@ const AdminProducts = () => {
 
   const openModal = (product = null) => {
     if (product) {
-      setFormData({ brand_name: product.brand_name, name: product.name, image_url: product.image_url, status: product.status });
+      setFormData({ 
+        brand_name: product.brand_name, 
+        name: product.name, 
+        image_url: product.image_url, 
+        product_type: product.product_type || 'Top Up', // 👈 আগের প্রোডাক্টগুলোর জন্য ডিফল্ট Top Up
+        status: product.status 
+      });
       setEditingId(product.id);
     } else {
-      setFormData({ brand_name: brands.length > 0 ? brands[0].name : '', name: '', image_url: '', status: 'Active' });
+      setFormData({ 
+        brand_name: brands.length > 0 ? brands[0].name : '', 
+        name: '', 
+        image_url: '', 
+        product_type: 'Top Up',
+        status: 'Active' 
+      });
       setEditingId(null);
     }
     setIsModalOpen(true);
@@ -94,7 +109,7 @@ const AdminProducts = () => {
           <h1 className="text-2xl font-bold text-[#0a1930] flex items-center gap-2">
             <Box className="text-[#0052FF]" /> Manage Products
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Add products under specific brands (e.g. Diamond Topup under Free Fire)</p>
+          <p className="text-gray-500 text-sm mt-1">Add products under specific brands</p>
         </div>
         <button onClick={() => openModal()} className="bg-[#0052FF] hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-md">
           <Plus size={18} /> Add New Product
@@ -109,13 +124,14 @@ const AdminProducts = () => {
                 <th className="p-4 font-medium">Image</th>
                 <th className="p-4 font-medium">Product Name</th>
                 <th className="p-4 font-medium">Brand</th>
+                <th className="p-4 font-medium">Type</th>
                 <th className="p-4 font-medium">Status</th>
                 <th className="p-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="5" className="p-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2"/> Loading products...</td></tr>
+                <tr><td colSpan="6" className="p-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2"/> Loading products...</td></tr>
               ) : products.length > 0 ? (
                 products.map((product) => (
                   <tr key={product.id} className="hover:bg-blue-50/50 transition">
@@ -128,6 +144,17 @@ const AdminProducts = () => {
                     </td>
                     <td className="p-4 font-bold text-[#0a1930]">{product.name}</td>
                     <td className="p-4 text-sm font-semibold text-blue-600">{product.brand_name}</td>
+                    
+                    {/* 👈 প্রোডাক্ট টাইপ ব্যাজ */}
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider ${
+                        product.product_type === 'Voucher' ? 'bg-purple-100 text-purple-700' :
+                        product.product_type === 'SMM' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {product.product_type || 'TOP UP'}
+                      </span>
+                    </td>
+
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${product.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
                         {product.status}
@@ -140,7 +167,7 @@ const AdminProducts = () => {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="5" className="p-8 text-center text-gray-500">No products found.</td></tr>
+                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No products found.</td></tr>
               )}
             </tbody>
           </table>
@@ -152,20 +179,35 @@ const AdminProducts = () => {
           <div className="bg-white rounded-xl w-full max-w-md p-6 animate-fade-in-up">
             <h2 className="text-xl font-bold mb-4 text-[#0a1930]">{editingId ? 'Edit Product' : 'Add Product'}</h2>
             <form onSubmit={handleSaveProduct} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Brand</label>
-                <select required value={formData.brand_name} onChange={(e) => setFormData({...formData, brand_name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]">
-                  {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
-                </select>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                  <select required value={formData.brand_name} onChange={(e) => setFormData({...formData, brand_name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]">
+                    {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                  </select>
+                </div>
+                {/* 👈 প্রোডাক্ট টাইপ ড্রপডাউন */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Type</label>
+                  <select value={formData.product_type} onChange={(e) => setFormData({...formData, product_type: e.target.value})} className="w-full border border-blue-300 bg-blue-50 text-blue-800 font-bold rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]">
+                    <option value="Top Up">Top Up (Game ID)</option>
+                    <option value="Voucher">Voucher / Code</option>
+                    <option value="SMM">SMM (Social Media)</option>
+                  </select>
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                <input type="text" required placeholder="e.g., Diamond Top Up" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]" />
+                <input type="text" required placeholder="e.g., Diamond Top Up or Unipin BD" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]" />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
                 <input type="url" placeholder="https://..." value={formData.image_url} onChange={(e) => setFormData({...formData, image_url: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]" />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]">
@@ -173,6 +215,7 @@ const AdminProducts = () => {
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
+
               <div className="flex gap-3 mt-6 pt-2">
                 <button type="button" onClick={closeModal} className="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-lg hover:bg-gray-200 transition">Cancel</button>
                 <button type="submit" disabled={saving} className="flex-1 bg-[#0052FF] text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition flex justify-center items-center gap-2">
