@@ -8,40 +8,49 @@ const AdminVouchers = () => {
   const [adding, setAdding] = useState(false);
   const [bulkCodes, setBulkCodes] = useState('');
 
-  // Unipin Auto-Detection Logic
+  // 👈 Updated Unipin Auto-Detection Logic (Both variants in same stock)
   const detectVoucherType = (code) => {
     const prefix = code.substring(0, 6).toUpperCase();
     
     switch (prefix) {
       // 20 UP
-      case 'BDMB-T': return '20 UP (BDMB)';
-      case 'UPBD-Q': return '20 UP (UPBD)';
+      case 'BDMB-T': 
+      case 'UPBD-Q': return '20 UP';
+      
       // 36 UP
-      case 'BDMB-U': return '36 UP (BDMB)';
-      case 'UPBD-R': return '36 UP (UPBD)';
+      case 'BDMB-U': 
+      case 'UPBD-R': return '36 UP';
+      
       // 80 UP
-      case 'BDMB-J': return '80 UP (BDMB)';
-      case 'UPBD-G': return '80 UP (UPBD)';
+      case 'BDMB-J': 
+      case 'UPBD-G': return '80 UP';
+      
       // 160 UP
-      case 'BDMB-I': return '160 UP (BDMB)';
-      case 'UPBD-F': return '160 UP (UPBD)';
+      case 'BDMB-I': 
+      case 'UPBD-F': return '160 UP';
+      
       // 161 UP
-      case 'BDMB-Q': return '161 UP (BDMB)';
-      case 'UPBD-N': return '161 UP (UPBD)';
+      case 'BDMB-Q': 
+      case 'UPBD-N': return '161 UP';
+      
       // 405 UP
-      case 'BDMB-K': return '405 UP (BDMB)';
-      case 'UPBD-H': return '405 UP (UPBD)';
+      case 'BDMB-K': 
+      case 'UPBD-H': return '405 UP';
+      
       // 800 UP
-      case 'BDMB-S': return '800 UP (BDMB)';
-      case 'UPBD-P': return '800 UP (UPBD)';
+      case 'BDMB-S': 
+      case 'UPBD-P': return '800 UP';
+      
       // 810 UP
-      case 'BDMB-L': return '810 UP (BDMB)';
-      case 'UPBD-I': return '810 UP (UPBD)';
+      case 'BDMB-L': 
+      case 'UPBD-I': return '810 UP';
+      
       // 1625 UP
-      case 'BDMB-M': return '1625 UP (BDMB)';
-      case 'UPBD-J': return '1625 UP (UPBD)';
+      case 'BDMB-M': 
+      case 'UPBD-J': return '1625 UP';
+      
       // 2000 UP
-      case 'UPBD-7': return '2000 UP (UPBD)';
+      case 'UPBD-7': return '2000 UP';
       
       // Default / Unknown
       default: return 'Default Voucher';
@@ -54,7 +63,6 @@ const AdminVouchers = () => {
 
   const fetchVouchers = async () => {
     setLoading(true);
-    // Group by type to show stock
     const { data, error } = await supabase.from('vouchers').select('*');
     if (data) setVouchers(data);
     setLoading(false);
