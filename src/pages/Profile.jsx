@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
+import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, Copy, CheckCircle2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -8,6 +8,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [copiedId, setCopiedId] = useState(null); // কপি অ্যানিমেশনের জন্য
 
   const [userData, setUserData] = useState({
     id: '',
@@ -88,6 +89,13 @@ const Profile = () => {
     }
   };
 
+  // কোড কপি করার ফাংশন
+  const handleCopyCode = (code, id) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000); // ২ সেকেন্ড পর টিক চিহ্ন চলে যাবে
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-[#8B5CF6]">
@@ -104,7 +112,6 @@ const Profile = () => {
         {/* Left Sidebar: User Info & Menu */}
         <div className="md:col-span-4 flex flex-col gap-6">
           
-          {/* Profile Card */}
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 flex flex-col items-center text-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#6D28D9] p-[3px] mb-4 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
@@ -122,7 +129,6 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Wallet Card */}
           <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-2xl shadow-lg border border-[#334155] p-6 text-white relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-[#A78BFA] text-sm mb-1 flex items-center gap-2">
@@ -151,13 +157,12 @@ const Profile = () => {
             </Link>
           )}
 
-          {/* Navigation Menu */}
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] overflow-hidden">
             <button 
               onClick={() => setActiveTab('orders')}
               className={`w-full flex items-center justify-between p-4 transition ${activeTab === 'orders' ? 'bg-[#8B5CF6]/10 text-[#A78BFA] border-l-4 border-[#8B5CF6]' : 'text-gray-400 hover:bg-[#0F172A]'}`}
             >
-              <div className="flex items-center gap-3 font-semibold"><Clock size={18} /> My Orders</div>
+              <div className="flex items-center gap-3 font-semibold"><Clock size={18} /> My Orders / Vouchers</div>
               <ChevronRight size={18} />
             </button>
             <button 
@@ -185,47 +190,75 @@ const Profile = () => {
                   <Clock size={20} className="text-[#8B5CF6]" /> Order History
                 </h3>
                 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-[#0F172A] text-gray-400 text-sm">
-                        <th className="p-3 font-medium rounded-tl-lg">Order ID</th>
-                        <th className="p-3 font-medium">Product</th>
-                        <th className="p-3 font-medium">Date</th>
-                        <th className="p-3 font-medium">Amount</th>
-                        <th className="p-3 font-medium rounded-tr-lg text-right">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderHistory.length > 0 ? (
-                        orderHistory.map((order) => (
-                          <tr key={order.id} className="border-b border-[#334155] hover:bg-[#0F172A] transition">
-                            {/* 👈 Error Fixed Here: Removed .slice() */}
-                            <td className="p-3 text-sm font-bold text-gray-400">#ORD-{String(order.id).slice(0, 6)}</td>
-                            <td className="p-3 text-sm text-white font-bold">{order.package_name}</td>
-                            <td className="p-3 text-sm text-gray-500">
-                              {new Date(order.created_at).toLocaleDateString('en-GB')}
-                            </td>
-                            <td className="p-3 text-sm text-[#00E5FF] font-bold">৳{order.amount}</td>
-                            <td className="p-3 text-sm text-right">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                {/* 👈 List / Card Layout for Orders */}
+                <div className="space-y-4">
+                  {orderHistory.length > 0 ? (
+                    orderHistory.map((order) => (
+                      <div key={order.id} className="bg-[#0F172A] border border-[#334155] rounded-xl p-4 md:p-5 hover:border-[#8B5CF6]/50 transition-all shadow-md">
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
+                          {/* Left Column */}
+                          <div className="space-y-2.5">
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
+                              Order ID: <span className="text-white">#EE-{String(order.id).slice(0, 6)}</span>
+                            </p>
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
+                              Date: <span className="text-white">{new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            </p>
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
+                              Package: <span className="text-white">{order.package_name}</span>
+                            </p>
+                          </div>
+                          
+                          {/* Right Column */}
+                          <div className="space-y-2.5">
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
+                              Info/ID: <span className="text-white">{order.player_id}</span>
+                            </p>
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
+                              Price: <span className="text-[#00E5FF]">৳{order.amount}</span>
+                            </p>
+                            <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2 items-center">
+                              Status: 
+                              <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-black ${
                                 order.status === 'completed' ? 'bg-green-500/20 text-green-400' : 
                                 order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
                               }`}>
                                 {order.status}
                               </span>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="5" className="p-6 text-center text-gray-500 font-medium">
-                            You have no orders yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 👈 Voucher Code Section (Only visible if a code is delivered) */}
+                        {order.voucher_code && (
+                          <div className="mt-4 pt-4 border-t border-[#334155]">
+                            <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider">Your Delivered Code(s):</p>
+                            <div className="bg-[#1E293B] p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border border-[#8B5CF6]/30">
+                              <div className="font-mono text-sm text-white whitespace-pre-wrap break-all font-bold">
+                                {order.voucher_code}
+                              </div>
+                              <button
+                                onClick={() => handleCopyCode(order.voucher_code, order.id)}
+                                className="w-full sm:w-auto bg-[#8B5CF6] hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                              >
+                                {copiedId === order.id ? (
+                                  <><CheckCircle2 size={16} /> Copied!</>
+                                ) : (
+                                  <><Copy size={14} /> Copy Code</>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 text-gray-500 font-medium">
+                      You have no orders yet.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
