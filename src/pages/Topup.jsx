@@ -105,41 +105,41 @@ const Topup = () => {
         let voucherErrorMsg = '';
 
         if (isVoucher) {
-            // "20 Unipin" থেকে 20 বের করবে
-            const match = currentPkg.name.match(/\d+/);
-            const upVal = match ? parseInt(match[0], 10) : null;
+          // Package name থেকে UP value বের করা (যেমন "20 Unipin Voucher" → "20 UP")
+          const match = currentPkg.name.match(/^(\d+)/);
+          const upVal = match ? parseInt(match[1], 10) : null;
 
-            if (upVal) {
-                // ডাটাবেস থেকে খোঁজা হচ্ছে (যেমন: '20 UP%')
-                const { data: availableVouchers, error: searchError } = await supabase
-                    .from('vouchers')
-                    .select('*')
-                    .eq('status', 'available')
-                    .ilike('type', `${upVal} UP%`)
-                    .limit(Number(quantity));
+          if (upVal) {
+            // FIXED: ilike দিয়ে exact match করা — "20 UP" এর জন্য "%20 UP%" বা exact type match
+            const { data: availableVouchers, error: searchError } = await supabase
+              .from('vouchers')
+              .select('*')
+              .eq('status', 'available')
+              .ilike('type', `${upVal} UP%`)
+              .limit(Number(quantity));
 
-                if (searchError) {
-                    voucherErrorMsg = "Database Error: " + searchError.message;
-                } else if (availableVouchers && availableVouchers.length >= quantity) {
-                    const vIds = availableVouchers.map(v => v.id);
-                    
-                    const { error: updateError } = await supabase
-                        .from('vouchers')
-                        .update({ status: 'sold' })
-                        .in('id', vIds);
+            if (searchError) {
+              voucherErrorMsg = "Database Error: " + searchError.message;
+            } else if (availableVouchers && availableVouchers.length >= quantity) {
+              const vIds = availableVouchers.map(v => v.id);
+              
+              const { error: updateError } = await supabase
+                .from('vouchers')
+                .update({ status: 'sold' })
+                .in('id', vIds);
 
-                    if (!updateError) {
-                        assignedVouchers = availableVouchers.map(v => v.code).join('\n\n');
-                        orderStatus = 'completed'; // 👈 Auto Complete!
-                    } else {
-                        voucherErrorMsg = "Failed to update stock status!";
-                    }
-                } else {
-                    voucherErrorMsg = `স্টকে পর্যাপ্ত ${upVal} UP নেই! আপনি চেয়েছেন ${quantity}টি, কিন্তু স্টকে আছে ${availableVouchers?.length || 0}টি।`;
-                }
+              if (!updateError) {
+                assignedVouchers = availableVouchers.map(v => v.code).join('\n\n');
+                orderStatus = 'completed';
+              } else {
+                voucherErrorMsg = "Failed to update stock status!";
+              }
             } else {
-                voucherErrorMsg = "প্যাকেজের নামে কোনো নির্দিষ্ট সংখ্যা পাওয়া যায়নি!";
+              voucherErrorMsg = `স্টকে পর্যাপ্ত ${upVal} UP নেই! আপনি চেয়েছেন ${quantity}টি, কিন্তু স্টকে আছে ${availableVouchers?.length || 0}টি।`;
             }
+          } else {
+            voucherErrorMsg = "প্যাকেজের নামে কোনো নির্দিষ্ট সংখ্যা পাওয়া যায়নি!";
+          }
         }
 
         const newBalance = userBalance - finalPrice;
@@ -157,23 +157,23 @@ const Topup = () => {
           buy_price: totalBuyPrice, 
           payment_method: 'Wallet',
           status: orderStatus,
-          voucher_code: assignedVouchers 
+          voucher_code: assignedVouchers  // null হলেও ঠিক আছে, completed হলে value থাকবে
         });
 
         if (discount > 0 && promoCode) await supabase.rpc('increment_promo_usage', { p_code: promoCode.toUpperCase() });
 
         if (!error) {
-          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n🚀 <b>Status:</b> ${orderStatus.toUpperCase()}`;
+          const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n🚀 <b>Status:</b> ${orderStatus.toUpperCase()}${assignedVouchers ? `\n🎟️ <b>Voucher:</b> <code>${assignedVouchers.replace(/\n\n/g, ', ')}</code>` : ''}`;
           await sendTelegramMessage(telegramMsg);
 
           sendEmailNotification({ user_email: user.email, player_id: orderPlayerId, package: orderPackageName, amount: finalPrice });
 
           if (orderStatus === 'completed') {
-              alert("অর্ডারটি সফল হয়েছে এবং ভাউচার কোড ডেলিভারি করা হয়েছে! ✅");
+            alert("অর্ডারটি সফল হয়েছে! ✅\n\nআপনার ভাউচার কোড Profile → My Orders এ দেখুন।");
           } else if (isVoucher) {
-              alert(`আপনার অর্ডারটি পেন্ডিং এ আছে! ⏳\n\nকারণ: ${voucherErrorMsg}`);
+            alert(`আপনার অর্ডারটি পেন্ডিং এ আছে! ⏳\n\nকারণ: ${voucherErrorMsg}`);
           } else {
-              alert("আপনার অর্ডারটি প্লেস করা হয়েছে! ⏳");
+            alert("আপনার অর্ডারটি প্লেস করা হয়েছে! ⏳");
           }
           
           navigate('/profile'); 
@@ -265,6 +265,11 @@ const Topup = () => {
                   <button onClick={handleApplyPromo} disabled={promoStatus === 'loading'} className="bg-[#8B5CF6] text-white px-4 py-2 rounded-lg font-bold text-sm">Apply</button>
                 )}
               </div>
+              {promoMessage && (
+                <p className={`text-xs mt-2 font-bold ${promoStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {promoMessage}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">

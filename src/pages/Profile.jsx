@@ -8,7 +8,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [copiedId, setCopiedId] = useState(null); // কপি অ্যানিমেশনের জন্য
+  const [copiedId, setCopiedId] = useState(null);
 
   const [userData, setUserData] = useState({
     id: '',
@@ -89,11 +89,10 @@ const Profile = () => {
     }
   };
 
-  // কোড কপি করার ফাংশন
   const handleCopyCode = (code, id) => {
     navigator.clipboard.writeText(code);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000); // ২ সেকেন্ড পর টিক চিহ্ন চলে যাবে
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   if (loading) {
@@ -109,7 +108,7 @@ const Profile = () => {
     <div className="w-full mt-6 mb-12 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        {/* Left Sidebar: User Info & Menu */}
+        {/* Left Sidebar */}
         <div className="md:col-span-4 flex flex-col gap-6">
           
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 flex flex-col items-center text-center">
@@ -190,7 +189,6 @@ const Profile = () => {
                   <Clock size={20} className="text-[#8B5CF6]" /> Order History
                 </h3>
                 
-                {/* 👈 List / Card Layout for Orders */}
                 <div className="space-y-4">
                   {orderHistory.length > 0 ? (
                     orderHistory.map((order) => (
@@ -230,25 +228,58 @@ const Profile = () => {
                           </div>
                         </div>
 
-                        {/* 👈 Voucher Code Section (Only visible if a code is delivered) */}
-                        {order.voucher_code && (
+                        {/* ✅ FIXED: voucher_code display — null/empty check করা */}
+                        {order.voucher_code && order.voucher_code.trim() !== '' && (
                           <div className="mt-4 pt-4 border-t border-[#334155]">
-                            <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider">Your Delivered Code(s):</p>
-                            <div className="bg-[#1E293B] p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border border-[#8B5CF6]/30">
-                              <div className="font-mono text-sm text-white whitespace-pre-wrap break-all font-bold">
-                                {order.voucher_code}
-                              </div>
-                              <button
-                                onClick={() => handleCopyCode(order.voucher_code, order.id)}
-                                className="w-full sm:w-auto bg-[#8B5CF6] hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shrink-0 shadow-sm"
-                              >
-                                {copiedId === order.id ? (
-                                  <><CheckCircle2 size={16} /> Copied!</>
-                                ) : (
-                                  <><Copy size={14} /> Copy Code</>
-                                )}
-                              </button>
+                            <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider flex items-center gap-1">
+                              🎟️ Your Delivered Voucher Code(s):
+                            </p>
+                            <div className="bg-[#1E293B] p-3 rounded-lg border border-[#8B5CF6]/30">
+                              {/* একাধিক কোড থাকলে আলাদা আলাদা card এ দেখাবে */}
+                              {order.voucher_code.split('\n\n').filter(c => c.trim()).map((code, idx) => (
+                                <div key={idx} className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 ${idx > 0 ? 'mt-3 pt-3 border-t border-[#334155]' : ''}`}>
+                                  <div className="font-mono text-sm text-[#00E5FF] font-bold break-all">
+                                    {idx > 0 && <span className="text-gray-500 text-xs mr-1">#{idx + 1}</span>}
+                                    {code.trim()}
+                                  </div>
+                                  <button
+                                    onClick={() => handleCopyCode(code.trim(), `${order.id}-${idx}`)}
+                                    className="shrink-0 bg-[#8B5CF6] hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                                  >
+                                    {copiedId === `${order.id}-${idx}` ? (
+                                      <><CheckCircle2 size={14} /> Copied!</>
+                                    ) : (
+                                      <><Copy size={12} /> Copy</>
+                                    )}
+                                  </button>
+                                </div>
+                              ))}
+                              {/* সব কোড একসাথে copy করার option */}
+                              {order.voucher_code.split('\n\n').filter(c => c.trim()).length > 1 && (
+                                <button
+                                  onClick={() => handleCopyCode(order.voucher_code.split('\n\n').filter(c => c.trim()).join('\n'), `${order.id}-all`)}
+                                  className="mt-3 w-full bg-[#0F172A] hover:bg-[#334155] text-gray-300 border border-[#334155] px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
+                                >
+                                  {copiedId === `${order.id}-all` ? (
+                                    <><CheckCircle2 size={14} className="text-green-400" /> All Codes Copied!</>
+                                  ) : (
+                                    <><Copy size={12} /> Copy All Codes</>
+                                  )}
+                                </button>
+                              )}
                             </div>
+                          </div>
+                        )}
+
+                        {/* Pending voucher order এর জন্য message */}
+                        {order.status === 'pending' && 
+                         order.package_name && 
+                         (order.package_name.toLowerCase().includes('voucher') || order.package_name.toLowerCase().includes('unipin')) &&
+                         (!order.voucher_code || order.voucher_code.trim() === '') && (
+                          <div className="mt-4 pt-4 border-t border-[#334155]">
+                            <p className="text-xs text-orange-400 font-bold bg-orange-500/10 p-3 rounded-lg border border-orange-500/20">
+                              ⏳ আপনার ভাউচার কোড প্রসেস হচ্ছে। কিছুক্ষণের মধ্যে এখানে দেখা যাবে।
+                            </p>
                           </div>
                         )}
 
