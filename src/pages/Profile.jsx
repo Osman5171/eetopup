@@ -198,13 +198,14 @@ const Profile = () => {
                 
                 <div className="space-y-4">
                   {orderHistory.length > 0 ? (
-                    orderHistory.map((order) => (
+                    orderHistory.map((order, index) => (
                       <div key={order.id} className="bg-[#0F172A] border border-[#334155] rounded-xl p-4 md:p-5 hover:border-[#8B5CF6]/50 transition-all shadow-md">
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
                           <div className="space-y-2.5">
+                            {/* 👈 Updated: Serial No is 1, 2, 3... and removed EE- */}
                             <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
-                              Order ID: <span className="text-white">#EE-{String(order.id).slice(0, 6)}</span>
+                              Serial NO: <span className="text-white">{index + 1} <span className="text-gray-600 text-xs ml-1">(#{order.id})</span></span>
                             </p>
                             <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                               Date: <span className="text-white">{new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</span>

@@ -1,29 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, CheckCircle, Clock, ShoppingBag } from 'lucide-react';
+import { Activity, RefreshCw, CheckCircle, Clock, ShoppingBag, Loader2 } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
 const LatestOrders = () => {
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Proti 1 minute por por time update hobe (Live update feeling er jonno)
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(Date.now()), 60000); 
+    fetchLatestOrders();
+    // প্রতি ১ মিনিট পর পর অটোমেটিক রিফ্রেশ হবে (Live Update)
+    const interval = setInterval(() => fetchLatestOrders(), 60000); 
     return () => clearInterval(interval);
   }, []);
 
-  // Eita dummy data, pore database theke ashbe. List boro korechi jate scroll ta dekha jay.
-  const orders = [
-    { id: 1, name: "Diamond Top up", amount: "৳760", user: "Md. Ashif", time: "Just now", status: "Completed", userImage: "https://i.pravatar.cc/150?img=11" },
-    { id: 2, name: "25 Diamond", amount: "৳23", user: "Jamiul Hasan", time: "2 min ago", status: "Completed", userImage: null, initial: "J" },
-    { id: 3, name: "Weekly Pass", amount: "৳153", user: "Roni", time: "5 min ago", status: "Pending", userImage: "https://i.pravatar.cc/150?img=13" },
-    { id: 4, name: "115 Diamond", amount: "৳77", user: "Sakib", time: "12 min ago", status: "Completed", userImage: "https://i.pravatar.cc/150?img=14" },
-    { id: 5, name: "Monthly Pass", amount: "৳760", user: "Unknown Player", time: "25 min ago", status: "Completed", userImage: null, initial: "U" },
-    { id: 6, name: "50 Diamond", amount: "৳37", user: "Fahim", time: "1 hour ago", status: "Completed", userImage: "https://i.pravatar.cc/150?img=15" },
-  ];
+  const fetchLatestOrders = async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('id, package_name, amount, status, created_at, profiles:user_id (full_name, email)')
+      .order('created_at', { ascending: false })
+      .limit(10);
+      
+    if (data) setOrders(data);
+    setLoading(false);
+  };
+
+  // ইউজারের নাম হাইড করার ফাংশন (যেমন: Osman -> Os***)
+  const maskName = (name) => {
+    if (!name) return "Us***";
+    if (name.length <= 2) return name + "***";
+    return name.substring(0, 2) + "***" + name.substring(name.length - 1);
+  };
+
+  // কতক্ষণ আগে অর্ডার করেছে তা বের করার ফাংশন
+  const getTimeAgo = (dateString) => {
+    const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+    let interval = seconds / 3600;
+    if (interval >= 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval >= 1) return Math.floor(interval) + " mins ago";
+    return "Just now";
+  };
 
   return (
     <div className="mt-14 mb-8 w-full animate-fade-in-up">
       
-      {/* Header Section (Esports site er moto premium header) */}
+      {/* Header Section */}
       <div className="flex justify-between items-end mb-4 pr-1">
         <h2 className="text-xl md:text-2xl font-bold border-l-4 border-[#0052FF] pl-3 text-[#0a1930] flex items-center gap-2">
           Latest Orders <Activity size={20} className="text-[#0052FF] animate-pulse"/>
@@ -43,63 +64,73 @@ const LatestOrders = () => {
           <div className="text-right pr-2">Status</div>
         </div>
 
-        {/* Scrollable Body (Esports site er moto) */}
-        <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-          {orders.map((order) => (
-            <div 
-              key={order.id} 
-              className="grid grid-cols-3 p-3 border-b border-gray-50 last:border-none items-center hover:bg-blue-50/50 transition duration-300"
-            >
-              
-              {/* Col 1: Avatar & Info */}
-              <div className="flex items-center gap-3 overflow-hidden">
-                {/* User Avatar or Initial */}
-                {order.userImage ? (
-                  <img src={order.userImage} alt="User" className="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-[#0a1930] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-                    {order.initial}
+        {/* Scrollable Body */}
+        <div className="max-h-[350px] overflow-y-auto custom-scrollbar relative">
+          
+          {loading ? (
+             <div className="flex justify-center items-center py-10">
+               <Loader2 className="animate-spin text-[#0052FF]" size={30} />
+             </div>
+          ) : orders.length > 0 ? (
+            orders.map((order) => {
+              const displayName = order.profiles?.full_name || order.profiles?.email?.split('@')[0] || 'Player';
+              const initial = displayName.charAt(0).toUpperCase();
+
+              return (
+                <div 
+                  key={order.id} 
+                  className="grid grid-cols-3 p-3 border-b border-gray-50 last:border-none items-center hover:bg-blue-50/50 transition duration-300"
+                >
+                  
+                  {/* Col 1: Avatar & Info */}
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-9 h-9 rounded-full bg-[#0a1930] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                      {initial}
+                    </div>
+                    
+                    <div className="min-w-0">
+                      <p className="text-xs md:text-sm font-bold text-[#0a1930] truncate">
+                        {maskName(displayName)}
+                      </p>
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1 truncate mt-0.5">
+                        <ShoppingBag size={10} className="text-[#0052FF]" /> {order.package_name} • {getTimeAgo(order.created_at)}
+                      </p>
+                    </div>
                   </div>
-                )}
-                
-                <div className="min-w-0">
-                  <p className="text-xs md:text-sm font-bold text-[#0a1930] truncate">
-                    {order.user}
-                  </p>
-                  <p className="text-[10px] text-gray-500 flex items-center gap-1 truncate mt-0.5">
-                    <ShoppingBag size={10} className="text-[#0052FF]" /> {order.name} • {order.time}
-                  </p>
+
+                  {/* Col 2: Amount Badge */}
+                  <div className="text-center">
+                    <span className="bg-blue-50 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold text-[#0052FF] shadow-sm inline-block">
+                      ৳{order.amount}
+                    </span>
+                  </div>
+
+                  {/* Col 3: Status Icon & Text */}
+                  <div className="flex justify-end">
+                    {order.status === 'completed' ? (
+                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-green-600 bg-green-50 border-green-200 shadow-sm">
+                        <span className="hidden sm:block">Paid</span>
+                        <CheckCircle size={14} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-orange-600 bg-orange-50 border-orange-200 shadow-sm">
+                        <span className="hidden sm:block">Pending</span>
+                        <Clock size={14} className="animate-pulse" />
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-              </div>
+              );
+            })
+          ) : (
+             <div className="text-center text-gray-400 py-10 font-bold text-sm">No recent orders.</div>
+          )}
 
-              {/* Col 2: Amount Badge */}
-              <div className="text-center">
-                <span className="bg-blue-50 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold text-[#0052FF] shadow-sm inline-block">
-                  {order.amount}
-                </span>
-              </div>
-
-              {/* Col 3: Status Icon & Text */}
-              <div className="flex justify-end">
-                {order.status === 'Completed' ? (
-                  <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-green-600 bg-green-50 border-green-200 shadow-sm">
-                    <span className="hidden sm:block">Paid</span>
-                    <CheckCircle size={14} />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-orange-600 bg-orange-50 border-orange-200 shadow-sm">
-                    <span className="hidden sm:block">Pending</span>
-                    <Clock size={14} className="animate-pulse" />
-                  </div>
-                )}
-              </div>
-
-            </div>
-          ))}
         </div>
       </div>
 
-      {/* Hide Scrollbar CSS directly included */}
+      {/* Hide Scrollbar CSS */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { display: none; }
         .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
