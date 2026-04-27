@@ -28,13 +28,12 @@ const AdminOrders = () => {
   };
 
   const handleComplete = async (order) => {
-    // 👈 Check if order is a Voucher
     const isVoucherOrder = order.package_name.toLowerCase().includes('voucher') || order.package_name.toLowerCase().includes('unipin');
     let manualCode = null;
     
     if (isVoucherOrder) {
         manualCode = window.prompt('এটি একটি ভাউচার অর্ডার! (স্টক না থাকায় পেন্ডিং ছিল)\nইউজারকে ডেলিভারি দেওয়ার জন্য ভাউচার কোডটি এখানে পেস্ট করুন:\n(কোড না দিয়ে শুধু কমপ্লিট করতে চাইলে ওকে/OK চাপুন)');
-        if (manualCode === null) return; // User clicked Cancel
+        if (manualCode === null) return; 
     } else {
         if (!window.confirm('আপনি কি এই গেম টপ-আপ অর্ডারটি Complete করতে চান? গেম আইডিতে টপ-আপ দেওয়া হয়ে থাকলে OK চাপুন।')) return;
     }
@@ -44,7 +43,7 @@ const AdminOrders = () => {
     try {
       const updateData = { status: 'completed' };
       if (manualCode && manualCode.trim() !== '') {
-          updateData.voucher_code = manualCode; // 👈 Saving manual voucher code
+          updateData.voucher_code = manualCode; 
       }
 
       const { error } = await supabase
@@ -121,6 +120,7 @@ const AdminOrders = () => {
                 <th className="p-4 font-bold">Order ID & Date</th>
                 <th className="p-4 font-bold">User Support Info</th>
                 <th className="p-4 font-bold">Package & ID</th>
+                {activeTab === 'completed' && <th className="p-4 font-bold text-purple-600">Security Code (Voucher)</th>}
                 <th className="p-4 font-bold">Buy Price</th>
                 <th className="p-4 font-bold">Sale Price</th>
                 <th className="p-4 font-bold">Profit</th>
@@ -129,10 +129,9 @@ const AdminOrders = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="7" className="p-8 text-center text-gray-500"><Loader2 className="animate-spin inline-block mr-2" size={24}/></td></tr>
+                <tr><td colSpan="8" className="p-8 text-center text-gray-500"><Loader2 className="animate-spin inline-block mr-2" size={24}/></td></tr>
               ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => {
-                  // 👈 Calculation for Profit
                   const buyPrice = Number(order.buy_price || 0);
                   const salePrice = Number(order.amount || 0);
                   const profit = salePrice - buyPrice;
@@ -153,6 +152,16 @@ const AdminOrders = () => {
                           {order.player_id}
                         </p>
                       </td>
+                      
+                      {/* Security Code / Voucher Code Column */}
+                      {activeTab === 'completed' && (
+                        <td className="p-4">
+                          <div className="text-[10px] font-mono font-bold text-purple-700 bg-purple-50 p-2 rounded border border-purple-100 whitespace-pre-wrap max-w-[200px] overflow-hidden">
+                            {order.voucher_code || '-'}
+                          </div>
+                        </td>
+                      )}
+
                       <td className="p-4 text-sm font-bold text-red-500">৳{buyPrice}</td>
                       <td className="p-4 text-sm font-black text-green-600">৳{salePrice}</td>
                       <td className="p-4 text-sm font-black text-blue-600">৳{profit > 0 ? profit : 0}</td>
@@ -176,7 +185,7 @@ const AdminOrders = () => {
                   )
                 })
               ) : (
-                <tr><td colSpan="7" className="p-8 text-center text-gray-500 font-medium">No {activeTab} orders found.</td></tr>
+                <tr><td colSpan="8" className="p-8 text-center text-gray-500 font-medium">No {activeTab} orders found.</td></tr>
               )}
             </tbody>
           </table>

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, Copy, CheckCircle2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('orders');
+  const [searchParams] = useSearchParams();
+  const tabQuery = searchParams.get('tab');
+  
+  const [activeTab, setActiveTab] = useState(tabQuery || 'orders');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
@@ -20,6 +23,10 @@ const Profile = () => {
   });
 
   const [orderHistory, setOrderHistory] = useState([]);
+
+  useEffect(() => {
+    if (tabQuery) setActiveTab(tabQuery);
+  }, [tabQuery]);
 
   useEffect(() => {
     fetchUserData();
@@ -158,14 +165,14 @@ const Profile = () => {
 
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] overflow-hidden">
             <button 
-              onClick={() => setActiveTab('orders')}
+              onClick={() => { setActiveTab('orders'); navigate('/profile?tab=orders'); }}
               className={`w-full flex items-center justify-between p-4 transition ${activeTab === 'orders' ? 'bg-[#8B5CF6]/10 text-[#A78BFA] border-l-4 border-[#8B5CF6]' : 'text-gray-400 hover:bg-[#0F172A]'}`}
             >
               <div className="flex items-center gap-3 font-semibold"><Clock size={18} /> My Orders / Vouchers</div>
               <ChevronRight size={18} />
             </button>
             <button 
-              onClick={() => setActiveTab('settings')}
+              onClick={() => { setActiveTab('settings'); navigate('/profile?tab=settings'); }}
               className={`w-full flex items-center justify-between p-4 transition border-t border-[#334155] ${activeTab === 'settings' ? 'bg-[#8B5CF6]/10 text-[#A78BFA] border-l-4 border-[#8B5CF6]' : 'text-gray-400 hover:bg-[#0F172A]'}`}
             >
               <div className="flex items-center gap-3 font-semibold"><User size={18} /> Profile Settings</div>
@@ -195,7 +202,6 @@ const Profile = () => {
                       <div key={order.id} className="bg-[#0F172A] border border-[#334155] rounded-xl p-4 md:p-5 hover:border-[#8B5CF6]/50 transition-all shadow-md">
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
-                          {/* Left Column */}
                           <div className="space-y-2.5">
                             <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                               Order ID: <span className="text-white">#EE-{String(order.id).slice(0, 6)}</span>
@@ -208,7 +214,6 @@ const Profile = () => {
                             </p>
                           </div>
                           
-                          {/* Right Column */}
                           <div className="space-y-2.5">
                             <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                               Info/ID: <span className="text-white">{order.player_id}</span>
@@ -228,14 +233,12 @@ const Profile = () => {
                           </div>
                         </div>
 
-                        {/* ✅ FIXED: voucher_code display — null/empty check করা */}
                         {order.voucher_code && order.voucher_code.trim() !== '' && (
                           <div className="mt-4 pt-4 border-t border-[#334155]">
                             <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider flex items-center gap-1">
                               🎟️ Your Delivered Voucher Code(s):
                             </p>
                             <div className="bg-[#1E293B] p-3 rounded-lg border border-[#8B5CF6]/30">
-                              {/* একাধিক কোড থাকলে আলাদা আলাদা card এ দেখাবে */}
                               {order.voucher_code.split('\n\n').filter(c => c.trim()).map((code, idx) => (
                                 <div key={idx} className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 ${idx > 0 ? 'mt-3 pt-3 border-t border-[#334155]' : ''}`}>
                                   <div className="font-mono text-sm text-[#00E5FF] font-bold break-all">
@@ -254,7 +257,6 @@ const Profile = () => {
                                   </button>
                                 </div>
                               ))}
-                              {/* সব কোড একসাথে copy করার option */}
                               {order.voucher_code.split('\n\n').filter(c => c.trim()).length > 1 && (
                                 <button
                                   onClick={() => handleCopyCode(order.voucher_code.split('\n\n').filter(c => c.trim()).join('\n'), `${order.id}-all`)}
@@ -271,7 +273,6 @@ const Profile = () => {
                           </div>
                         )}
 
-                        {/* Pending voucher order এর জন্য message */}
                         {order.status === 'pending' && 
                          order.package_name && 
                          (order.package_name.toLowerCase().includes('voucher') || order.package_name.toLowerCase().includes('unipin')) &&
