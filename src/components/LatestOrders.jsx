@@ -8,16 +8,15 @@ const LatestOrders = () => {
 
   useEffect(() => {
     fetchLatestOrders();
-    // 1 Minute por por live refresh hobe
     const interval = setInterval(() => fetchLatestOrders(), 60000); 
     return () => clearInterval(interval);
   }, []);
 
   const fetchLatestOrders = async () => {
-    // Database schema onujayi 'email' kete 'phone' dewa holo
+    // Fetching from 'orders' table
     const { data, error } = await supabase
       .from('orders')
-      .select('id, package_name, amount, status, created_at, profiles:user_id (full_name, phone)')
+      .select('id, package_name, amount, status, created_at, profiles:user_id (full_name, phone, whatsapp)')
       .order('created_at', { ascending: false })
       .limit(10);
       
@@ -47,7 +46,6 @@ const LatestOrders = () => {
   return (
     <div className="mt-14 mb-8 w-full animate-fade-in-up">
       
-      {/* Header Section */}
       <div className="flex justify-between items-end mb-4 pr-1">
         <h2 className="text-xl md:text-2xl font-bold border-l-4 border-[#0052FF] pl-3 text-[#0a1930] flex items-center gap-2">
           Latest Orders <Activity size={20} className="text-[#0052FF] animate-pulse"/>
@@ -57,17 +55,14 @@ const LatestOrders = () => {
         </p>
       </div>
 
-      {/* Main Table Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-[#1e293b] rounded-xl shadow-sm border border-gray-700 overflow-hidden">
         
-        {/* Table Header Row */}
-        <div className="grid grid-cols-3 bg-gray-50 p-3 text-[10px] md:text-xs uppercase font-bold text-gray-500 tracking-wider border-b border-gray-100">
+        <div className="grid grid-cols-3 bg-[#0f172a] p-3 text-[10px] md:text-xs uppercase font-bold text-gray-400 tracking-wider border-b border-gray-700">
           <div className="pl-2">Player & Item</div>
           <div className="text-center">Amount</div>
           <div className="text-right pr-2">Status</div>
         </div>
 
-        {/* Scrollable Body */}
         <div className="max-h-[350px] overflow-y-auto custom-scrollbar relative">
           
           {loading ? (
@@ -76,24 +71,21 @@ const LatestOrders = () => {
              </div>
           ) : orders.length > 0 ? (
             orders.map((order) => {
-              // Email nai tai phone ba default name use kora holo
-              const displayName = order.profiles?.full_name || order.profiles?.phone || 'Player';
+              const displayName = order.profiles?.full_name || order.profiles?.phone || order.profiles?.whatsapp || 'Player';
               const initial = displayName.charAt(0).toUpperCase();
 
               return (
                 <div 
                   key={order.id} 
-                  className="grid grid-cols-3 p-3 border-b border-gray-50 last:border-none items-center hover:bg-blue-50/50 transition duration-300"
+                  className="grid grid-cols-3 p-3 border-b border-gray-700/50 last:border-none items-center hover:bg-gray-800/50 transition duration-300"
                 >
-                  
-                  {/* Col 1: Avatar & Info */}
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-9 h-9 rounded-full bg-[#0a1930] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                    <div className="w-9 h-9 rounded-full bg-[#fbbf24] text-[#0a1930] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
                       {initial}
                     </div>
                     
                     <div className="min-w-0">
-                      <p className="text-xs md:text-sm font-bold text-[#0a1930] truncate">
+                      <p className="text-xs md:text-sm font-bold text-gray-200 truncate">
                         {maskName(displayName)}
                       </p>
                       <p className="text-[10px] text-gray-500 flex items-center gap-1 truncate mt-0.5">
@@ -102,28 +94,25 @@ const LatestOrders = () => {
                     </div>
                   </div>
 
-                  {/* Col 2: Amount Badge */}
                   <div className="text-center">
-                    <span className="bg-blue-50 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold text-[#0052FF] shadow-sm inline-block">
+                    <span className="bg-blue-900/30 border border-blue-800 px-3 py-1 rounded-full text-xs font-bold text-blue-400 shadow-sm inline-block">
                       ৳{order.amount}
                     </span>
                   </div>
 
-                  {/* Col 3: Status Icon & Text */}
                   <div className="flex justify-end">
                     {order.status === 'completed' ? (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-green-600 bg-green-50 border-green-200 shadow-sm">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-green-400 bg-green-900/20 border-green-800/50 shadow-sm">
                         <span className="hidden sm:block">Paid</span>
                         <CheckCircle size={14} />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-orange-600 bg-orange-50 border-orange-200 shadow-sm">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded text-[9px] md:text-[10px] font-bold border uppercase tracking-wide text-orange-400 bg-orange-900/20 border-orange-800/50 shadow-sm">
                         <span className="hidden sm:block">Pending</span>
                         <Clock size={14} className="animate-pulse" />
                       </div>
                     )}
                   </div>
-
                 </div>
               );
             })
@@ -134,12 +123,10 @@ const LatestOrders = () => {
         </div>
       </div>
 
-      {/* Hide Scrollbar CSS */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { display: none; }
         .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-
     </div>
   );
 };

@@ -72,7 +72,13 @@ const Auth = () => {
         if (error) throw error;
         
         if (data?.user) {
-            await supabase.from('profiles').update({ whatsapp: formData.whatsapp }).eq('id', data.user.id);
+            // 🔥 ৮ ডিজিটের র‍্যান্ডম সাপোর্ট আইডি তৈরি 🔥
+            const generatedSupportId = Math.floor(10000000 + Math.random() * 90000000).toString();
+            
+            await supabase.from('profiles').update({ 
+                whatsapp: formData.whatsapp,
+                support_id: generatedSupportId // ডাটাবেসে ইনসার্ট
+            }).eq('id', data.user.id);
         }
         
         alert('Registration Successful! You can now log in.');
@@ -125,13 +131,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 relative overflow-hidden w-full">
       
-      {/* Background Decor */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"></div>
 
       <div className="bg-[#1e293b]/90 backdrop-blur p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700/50 z-10 transition-all duration-500">
         
-        {/* Header Text */}
         <div className="text-center mb-8 relative">
             {showManualForm && !isForgotPassword && (
                 <button onClick={() => setShowManualForm(false)} className="absolute -left-2 top-0 text-gray-400 hover:text-white transition">
@@ -146,7 +150,6 @@ const Auth = () => {
             </p>
         </div>
 
-        {/* 🔥 VIEW 1: ONLY GOOGLE & EMAIL BUTTON 🔥 */}
         {!showManualForm && !isForgotPassword ? (
             <div className="space-y-4 animate-fade-in">
                 <button onClick={handleGoogleLogin} disabled={loading} className="w-full bg-white text-gray-900 font-extrabold py-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-100 hover:scale-[1.02] transition shadow-lg disabled:opacity-70">
@@ -178,7 +181,6 @@ const Auth = () => {
                 </div>
             </div>
         ) : (
-            /* 🔥 VIEW 2: MANUAL EMAIL/PASSWORD FORM 🔥 */
             <div className="animate-slide-up">
                 <form onSubmit={isForgotPassword ? handleForgotPassword : handleAuth} className="space-y-4">
                   
@@ -242,7 +244,6 @@ const Auth = () => {
 
       </div>
       
-      {/* <style jsx> er poriborte standard <style> bebohar kora holo jate React e error na dey */}
       <style>{`
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
