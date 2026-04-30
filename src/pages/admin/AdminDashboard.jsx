@@ -121,10 +121,11 @@ const AdminDashboard = () => {
         2000: 14.26
       };
 
+      // শুধুমাত্র 'available' বা 'Active' স্ট্যাটাসের ভাউচারগুলো আনা হচ্ছে
       const { data: availableVouchers } = await supabase
         .from('vouchers')
-        .select('type')
-        .eq('status', 'available');
+        .select('type, status')
+        .in('status', ['available', 'Active', 'active']); // মাল্টিপল অপশন রাখা হলো যাতে কোনো মিসম্যাচ না হয়
 
       let totalStockUsdt = 0;
 
