@@ -17,14 +17,15 @@ const AdminOrders = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('orders')
+      // Database schema onujayi shudhu full_name ebong phone select kora hocche
       .select(`
         *,
-        profiles:user_id (full_name, email, phone, whatsapp)
+        profiles:user_id (full_name, phone)
       `)
       .order('created_at', { ascending: false });
-
+      
     if (data) setOrders(data);
-    if (error) console.error("Error fetching orders:", error);
+    if (error) console.error("Error fetching admin orders:", error);
     setLoading(false);
   };
 
@@ -33,14 +34,13 @@ const AdminOrders = () => {
     let manualCode = null;
     
     if (isVoucherOrder) {
-        manualCode = window.prompt('এটি একটি ভাউচার অর্ডার! (স্টক না থাকায় পেন্ডিং ছিল)\nইউজারকে ডেলিভারি দেওয়ার জন্য ভাউচার কোডটি এখানে পেস্ট করুন:\n(কোড না দিয়ে শুধু কমপ্লিট করতে চাইলে ওকে/OK চাপুন)');
-        if (manualCode === null) return; 
+        manualCode = window.prompt('দয়া করে ভাউচার কোডটি দিন:\n(কোড না থাকলে ফাঁকা রেখে OK চাপুন)');
+        if (manualCode === null) return;
     } else {
-        if (!window.confirm('আপনি কি এই গেম টপ-আপ অর্ডারটি Complete করতে চান? গেম আইডিতে টপ-আপ দেওয়া হয়ে থাকলে OK চাপুন।')) return;
+        if (!window.confirm('অর্ডারটি Complete হিসেবে মার্ক করতে চান? OK চাপুন।')) return;
     }
 
     setProcessingId(order.id);
-
     try {
       const updateData = { status: 'completed' };
       if (manualCode && manualCode.trim() !== '') {
@@ -53,10 +53,8 @@ const AdminOrders = () => {
         .eq('id', order.id);
 
       if (error) throw error;
-
       alert('Order marked as Completed! ✅');
       fetchOrders(); 
-
     } catch (error) {
       alert("Error: " + error.message);
     } finally {
@@ -65,22 +63,21 @@ const AdminOrders = () => {
   };
 
   const handleCancel = async (order) => {
-    if (!window.confirm(`আপনি কি অর্ডারটি Cancel করতে চান? OK চাপলে ইউজারের ব্যালেন্সে ৳${order.amount} রিফান্ড হয়ে যাবে!`)) return;
+    if (!window.confirm(`অর্ডারটি Cancel করতে চান? OK চাপলে ইউজারের ব্যালেন্সে ৳${order.amount} ফেরত যাবে!`)) return;
+    
     setProcessingId(order.id);
-
     try {
       const { error: orderError } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
       if (orderError) throw orderError;
 
       const { data: profile } = await supabase.from('profiles').select('balance').eq('id', order.user_id).single();
       const newBalance = Number(profile.balance || 0) + Number(order.amount);
+      
       const { error: refundError } = await supabase.from('profiles').update({ balance: newBalance }).eq('id', order.user_id);
-
       if (refundError) throw refundError;
 
-      alert('Order Cancelled & Amount Refunded Successfully! ❌');
+      alert('Order Cancelled & Amount Refunded Successfully! ✅');
       fetchOrders(); 
-
     } catch (error) {
       alert("Error: " + error.message);
     } finally {
@@ -92,7 +89,7 @@ const AdminOrders = () => {
     const matchesTab = order.status === activeTab;
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = String(order.id).toLowerCase().includes(searchLower) || 
-                          (order.player_id && order.player_id.toLowerCase().includes(searchLower)) || 
+                          (order.player_id && order.player_id.toLowerCase().includes(searchLower)) ||
                           (order.profiles?.full_name && order.profiles.full_name.toLowerCase().includes(searchLower));
     return matchesTab && matchesSearch;
   });
@@ -146,13 +143,12 @@ const AdminOrders = () => {
                   return (
                     <tr key={order.id} className="hover:bg-blue-50/50 transition">
                       <td className="p-4">
-                        {/* 👈 শুধু ডাটাবেসের অরিজিনাল আইডি দেখাবে */}
                         <p className="font-black text-[#0052FF] text-sm">#{order.id}</p>
                         <p className="text-[10px] text-gray-500 font-medium mt-0.5">{new Date(order.created_at).toLocaleString('en-GB')}</p>
                       </td>
                       <td className="p-4">
                         <p className="font-bold text-[#0a1930] text-sm">{order.profiles?.full_name || 'Unknown User'}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">{order.profiles?.email || order.profiles?.phone || order.profiles?.whatsapp || 'No Contact'}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{order.profiles?.phone || 'No Contact'}</p>
                       </td>
                       <td className="p-4">
                         <p className="text-sm font-bold text-gray-800">{order.package_name}</p>

@@ -14,11 +14,16 @@ const LatestOrders = () => {
   }, []);
 
   const fetchLatestOrders = async () => {
-    const { data } = await supabase
+    // Database schema onujayi 'email' kete 'phone' dewa holo
+    const { data, error } = await supabase
       .from('orders')
-      .select('id, package_name, amount, status, created_at, profiles:user_id (full_name, email)')
+      .select('id, package_name, amount, status, created_at, profiles:user_id (full_name, phone)')
       .order('created_at', { ascending: false })
       .limit(10);
+      
+    if (error) {
+      console.error("LatestOrders Fetch Error:", error);
+    }
       
     if (data) setOrders(data);
     setLoading(false);
@@ -71,7 +76,8 @@ const LatestOrders = () => {
              </div>
           ) : orders.length > 0 ? (
             orders.map((order) => {
-              const displayName = order.profiles?.full_name || order.profiles?.email?.split('@')[0] || 'Player';
+              // Email nai tai phone ba default name use kora holo
+              const displayName = order.profiles?.full_name || order.profiles?.phone || 'Player';
               const initial = displayName.charAt(0).toUpperCase();
 
               return (
