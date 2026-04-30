@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, DollarSign, ShoppingCart, ShoppingBag, 
   Wallet, Activity, Loader2, ArrowRight, TrendingUp, 
-  BarChart2, Calendar, Award, Landmark 
+  BarChart2, Calendar, Award, Landmark, Package
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
@@ -13,7 +13,7 @@ const AdminDashboard = () => {
     usersToday: 0,
     systemBalance: 0,
     
-    totalRevenue: 0,
+    stockUsdt: 0, // নতুন: স্টকে থাকা ভাউচারের মোট ডলার ভ্যালু
     lifetimeProfit: 0,
     todayProfit: 0,
     yesterdayProfit: 0,
@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   });
   
   const [loading, setLoading] = useState(true);
+  const [usdtRate, setUsdtRate] = useState(128.5); // ডিফল্ট ডলার রেট
 
   useEffect(() => {
     fetchDashboardStats();
@@ -65,13 +66,12 @@ const AdminDashboard = () => {
         });
       }
 
-      // ২. Fetch Completed Orders for Revenue & Profit
+      // ২. Fetch Completed Orders for Profit
       const { data: completedOrders } = await supabase
         .from('orders')
         .select('amount, buy_price, created_at')
         .eq('status', 'completed');
 
-      let totalRevenue = 0;
       let lifetimeProfit = 0;
       let todayProfit = 0;
       let yesterdayProfit = 0;
@@ -85,7 +85,6 @@ const AdminDashboard = () => {
           const profit = amount - buyPrice;
           const orderDate = new Date(order.created_at);
 
-          totalRevenue += amount;
           lifetimeProfit += profit;
 
           if (orderDate >= startOfToday) {
@@ -103,19 +102,53 @@ const AdminDashboard = () => {
         });
       }
 
-      // ৩. Fetch Today's Orders (All Statuses)
+      // ৩. Fetch Available Vouchers for Stock Value (USDT)
+      const ucToUsdtMap = {
+        20: 0.15,
+        36: 0.26,
+        80: 0.57,
+        160: 1.13,
+        161: 1.14,
+        405: 2.86,
+        800: 5.63,
+        810: 5.7,
+        1625: 11.44,
+        2000: 14.26
+      };
+
+      const { data: availableVouchers } = await supabase
+        .from('vouchers')
+        .select('type')
+        .eq('status', 'available');
+
+      let totalStockUsdt = 0;
+
+      if (availableVouchers) {
+        availableVouchers.forEach(v => {
+          // '20 UC', '36 UP' ইত্যাদি থেকে শুধু সংখ্যাটা বের করা হচ্ছে
+          const match = v.type.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (ucToUsdtMap[num]) {
+              totalStockUsdt += ucToUsdtMap[num];
+            }
+          }
+        });
+      }
+
+      // ৪. Fetch Today's Orders (All Statuses)
       const { count: todayOrdersCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startOfToday.toISOString());
 
-      // ৪. Pending Orders
+      // ৫. Pending Orders
       const { count: pendingOrdersCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
 
-      // ৫. Pending Deposits
+      // ৬. Pending Deposits
       const { count: pendingDepositsCount } = await supabase
         .from('deposits')
         .select('*', { count: 'exact', head: true })
@@ -126,7 +159,7 @@ const AdminDashboard = () => {
         totalUsers,
         usersToday,
         systemBalance,
-        totalRevenue,
+        stockUsdt: totalStockUsdt,
         lifetimeProfit,
         todayProfit,
         yesterdayProfit,
@@ -191,12 +224,31 @@ const AdminDashboard = () => {
           <Landmark className="absolute -bottom-4 -right-4 text-white opacity-10 group-hover:scale-110 transition" size={100} />
         </div>
 
-        <div className="bg-gradient-to-br from-gray-900 to-slate-700 rounded-xl p-6 shadow-lg text-white relative overflow-hidden group hover:scale-105 transition duration-300 cursor-pointer">
-          <div className="relative z-10">
-            <p className="text-gray-300 font-bold mb-1 text-xs uppercase tracking-wider flex items-center gap-2"><DollarSign size={14}/> Total Revenue</p>
-            <h2 className="text-3xl font-black">৳ {stats.totalRevenue.toLocaleString()}</h2>
+        {/* নতুন ভাউচার স্টক কার্ড */}
+        <div className="bg-gradient-to-br from-gray-900 to-slate-700 rounded-xl p-5 shadow-lg text-white relative overflow-hidden transition duration-300">
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <p className="text-gray-300 font-bold mb-1 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <Package size={14}/> Stock Code Value
+              </p>
+              <h2 className="text-2xl font-black text-yellow-400">{stats.stockUsdt.toFixed(2)} USDT</h2>
+              <h3 className="text-lg font-bold text-green-400">৳ {(stats.stockUsdt * parseFloat(usdtRate || 0)).toFixed(2)}</h3>
+            </div>
+            
+            {/* USDT Rate Input */}
+            <div className="mt-3 flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-600 shadow-inner">
+              <span className="text-[10px] text-gray-300 font-bold whitespace-nowrap">1 USDT =</span>
+              <input 
+                type="number" 
+                value={usdtRate}
+                onChange={(e) => setUsdtRate(e.target.value)}
+                step="0.01"
+                className="w-full bg-slate-700 text-white text-xs font-bold px-2 py-1 rounded outline-none border border-slate-500 focus:border-blue-400 transition"
+              />
+              <span className="text-[10px] text-gray-300 font-bold">BDT</span>
+            </div>
           </div>
-          <DollarSign className="absolute -bottom-4 -right-4 text-white opacity-10 group-hover:scale-110 transition" size={100} />
+          <Package className="absolute -bottom-4 -right-4 text-white opacity-10" size={100} />
         </div>
 
       </div>
