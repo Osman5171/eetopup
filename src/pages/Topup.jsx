@@ -174,7 +174,7 @@ const Topup = () => {
         const orderPlayerId = isVoucher ? `Contact: ${playerId} | Qty: ${quantity}` : playerId;
         const totalBuyPrice = (currentPkg.buy_price || 0) * (isVoucher ? quantity : 1);
 
-        const { error } = await supabase.from('orders').insert({
+        const orderData = {
           user_id: user.id,
           package_name: orderPackageName + (discount > 0 ? ` (Promo: ${promoCode})` : ''),
           player_id: orderPlayerId, 
@@ -183,13 +183,25 @@ const Topup = () => {
           payment_method: 'Wallet',
           status: orderStatus,
           voucher_code: assignedVouchers 
-        });
+        };
+
+        console.log("Order Data Sending to DB:", orderData);
+
+        const { data: newOrder, error: insertError } = await supabase
+          .from('orders')
+          .insert([orderData])
+          .select();
 
         if (discount > 0 && promoCode) {
           await supabase.rpc('increment_promo_usage', { p_code: promoCode.toUpperCase() });
         }
 
-        if (!error) {
+        if (insertError) {
+           console.error("Database Insert Error:", insertError);
+           alert("অর্ডার ডাটাবেসে সেভ হয়নি! Error: " + insertError.message);
+          
+           await supabase.from('profiles').update({ balance: userBalance }).eq('id', user.id);
+        } else {
           const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Product:</b> ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
           await sendTelegramMessage(telegramMsg);
 
@@ -201,8 +213,6 @@ const Topup = () => {
               alert("আপনার অর্ডারটি প্লেস করা হয়েছে! (খুব শীঘ্রই ভাউচার দেওয়া হবে) ⏳");
           }
           navigate('/profile?tab=orders'); 
-        } else {
-          alert("Error: " + error.message);
         }
         setProcessing(false);
       }

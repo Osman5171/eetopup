@@ -8,7 +8,7 @@ const LatestOrders = () => {
 
   useEffect(() => {
     fetchLatestOrders();
-    // প্রতি ১ মিনিট পর পর অটোমেটিক রিফ্রেশ হবে (Live Update)
+    // 1 Minute por por live refresh hobe
     const interval = setInterval(() => fetchLatestOrders(), 60000); 
     return () => clearInterval(interval);
   }, []);
@@ -24,14 +24,12 @@ const LatestOrders = () => {
     setLoading(false);
   };
 
-  // ইউজারের নাম হাইড করার ফাংশন (যেমন: Osman -> Os***)
   const maskName = (name) => {
     if (!name) return "Us***";
     if (name.length <= 2) return name + "***";
     return name.substring(0, 2) + "***" + name.substring(name.length - 1);
   };
 
-  // কতক্ষণ আগে অর্ডার করেছে তা বের করার ফাংশন
   const getTimeAgo = (dateString) => {
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
     let interval = seconds / 3600;

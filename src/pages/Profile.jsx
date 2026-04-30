@@ -30,7 +30,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [activeTab]);
 
   const fetchUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
