@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, DollarSign, ShoppingCart, ShoppingBag, 
   Wallet, Activity, Loader2, ArrowRight, TrendingUp, 
-  BarChart2, Calendar, Award, Landmark, Package
+  BarChart2, Calendar, Award, Landmark, Package, Save
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
@@ -13,7 +13,7 @@ const AdminDashboard = () => {
     usersToday: 0,
     systemBalance: 0,
     
-    stockUsdt: 0, // নতুন: স্টকে থাকা ভাউচারের মোট ডলার ভ্যালু
+    stockUsdt: 0, 
     lifetimeProfit: 0,
     todayProfit: 0,
     yesterdayProfit: 0,
@@ -26,9 +26,14 @@ const AdminDashboard = () => {
   });
   
   const [loading, setLoading] = useState(true);
-  const [usdtRate, setUsdtRate] = useState(128.5); // ডিফল্ট ডলার রেট
+  const [usdtRate, setUsdtRate] = useState(128.5); 
 
   useEffect(() => {
+    // পেজ লোড হওয়ার সময় লোকাল স্টোরেজ থেকে সেভ করা রেট নিয়ে আসবে
+    const savedRate = localStorage.getItem('admin_usdt_rate');
+    if (savedRate) {
+      setUsdtRate(parseFloat(savedRate));
+    }
     fetchDashboardStats();
   }, []);
 
@@ -125,7 +130,6 @@ const AdminDashboard = () => {
 
       if (availableVouchers) {
         availableVouchers.forEach(v => {
-          // '20 UC', '36 UP' ইত্যাদি থেকে শুধু সংখ্যাটা বের করা হচ্ছে
           const match = v.type.match(/\d+/);
           if (match) {
             const num = parseInt(match[0], 10);
@@ -136,7 +140,7 @@ const AdminDashboard = () => {
         });
       }
 
-      // ৪. Fetch Today's Orders (All Statuses)
+      // ৪. Fetch Today's Orders
       const { count: todayOrdersCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
@@ -154,7 +158,6 @@ const AdminDashboard = () => {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
 
-      // Set State
       setStats({
         totalUsers,
         usersToday,
@@ -175,6 +178,13 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // রেট সেভ করার ফাংশন
+  const handleSaveRate = () => {
+    if (!usdtRate || usdtRate <= 0) return alert("Please enter a valid rate!");
+    localStorage.setItem('admin_usdt_rate', usdtRate);
+    alert(`USDT Rate Saved: ৳${usdtRate}`);
   };
 
   if (loading) {
@@ -224,7 +234,6 @@ const AdminDashboard = () => {
           <Landmark className="absolute -bottom-4 -right-4 text-white opacity-10 group-hover:scale-110 transition" size={100} />
         </div>
 
-        {/* নতুন ভাউচার স্টক কার্ড */}
         <div className="bg-gradient-to-br from-gray-900 to-slate-700 rounded-xl p-5 shadow-lg text-white relative overflow-hidden transition duration-300">
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
@@ -235,7 +244,7 @@ const AdminDashboard = () => {
               <h3 className="text-lg font-bold text-green-400">৳ {(stats.stockUsdt * parseFloat(usdtRate || 0)).toFixed(2)}</h3>
             </div>
             
-            {/* USDT Rate Input */}
+            {/* USDT Rate Input with Save Button */}
             <div className="mt-3 flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-600 shadow-inner">
               <span className="text-[10px] text-gray-300 font-bold whitespace-nowrap">1 USDT =</span>
               <input 
@@ -245,7 +254,13 @@ const AdminDashboard = () => {
                 step="0.01"
                 className="w-full bg-slate-700 text-white text-xs font-bold px-2 py-1 rounded outline-none border border-slate-500 focus:border-blue-400 transition"
               />
-              <span className="text-[10px] text-gray-300 font-bold">BDT</span>
+              <button 
+                onClick={handleSaveRate}
+                className="bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded transition shadow-md"
+                title="Save Rate"
+              >
+                <Save size={14} />
+              </button>
             </div>
           </div>
           <Package className="absolute -bottom-4 -right-4 text-white opacity-10" size={100} />
