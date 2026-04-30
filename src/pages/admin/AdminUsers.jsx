@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { 
     Search, User, Ban, CheckCircle, XCircle, 
-    Globe, ShieldAlert, Clock, RefreshCcw, Radar, X
+    Globe, ShieldAlert, Clock, RefreshCcw, Radar, X,
+    ShoppingCart, ArrowDownLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -171,7 +172,7 @@ const AdminUsers = () => {
                             {user.full_name || 'No Name'}
                             {renderBanBadge(user.ban_type)}
                         </h3>
-                        <p className="text-xs text-gray-400">{user.phone || 'No Phone'}</p>
+                        <p className="text-xs text-gray-400">{user.phone || 'No Phone/WhatsApp'}</p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -196,7 +197,7 @@ const AdminUsers = () => {
                 <div className="p-5 border-b border-gray-700 bg-[#0f172a] flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <User className="text-blue-500"/> {viewDetailsUser.full_name || 'Unknown'}
+                            <User className="text-blue-500"/> {viewDetailsUser.full_name || 'Unknown User'}
                             {renderBanBadge(viewDetailsUser.ban_type)}
                         </h2>
                         <div className="flex gap-3 text-xs text-gray-400 mt-1">
@@ -253,7 +254,7 @@ const AdminUsers = () => {
                             </div>
                             
                             <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-800">
-                                <h4 className="text-blue-400 font-bold text-sm mb-2 flex items-center gap-2"><Globe size={16}/> IP History</h4>
+                                <h4 className="text-blue-400 font-bold text-sm mb-2 flex items-center gap-2"><Globe size={16}/> IP History & Security</h4>
                                 <div className="flex flex-col gap-2 mt-3">
                                     <div className="flex flex-wrap gap-2">
                                         {viewDetailsUser.ip_address ? viewDetailsUser.ip_address.split(',').map((ip, i) => (

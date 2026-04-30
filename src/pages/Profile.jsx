@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, Copy, CheckCircle2, MapPin, Map, AlertTriangle } from 'lucide-react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabQuery = searchParams.get('tab');
-  const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState(tabQuery || 'orders');
   const [copiedId, setCopiedId] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locationStatus, setLocationStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [localProfile, setLocalProfile] = useState({
     id: '',
@@ -22,11 +23,17 @@ const Profile = () => {
     phone: '',
     balance: 0,
     role: 'user',
+    isAdmin: false,
     division: '',
     district: ''
   });
 
   const [orderHistory, setOrderHistory] = useState([]);
+  const [userStats, setUserStats] = useState({
+    totalAmount: 0,
+    thisWeekAmount: 0,
+    thisMonthAmount: 0
+  });
 
   // Bangladesh Divisions and Districts Data for Manual Fallback
   const locations = {
@@ -47,14 +54,19 @@ const Profile = () => {
     if (tabQuery) setActiveTab(tabQuery);
   }, [tabQuery]);
 
-  const { data: serverData, isLoading: loading, error, isError } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
       const { data: { session }, error: authError } = await supabase.auth.getSession();
       
       if (authError || !session) {
         navigate('/auth');
-        throw new Error("No active session");
+        return;
       }
 
       const user = session.user;
@@ -78,47 +90,10 @@ const Profile = () => {
             role: 'user',
             division: '',
             district: ''
-         }
+         };
       }
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('amount, created_at, status')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      // Calculate Order Stats
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); 
-      startOfWeek.setHours(0,0,0,0);
-      
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      let totalAmount = 0;
-      let thisWeekAmount = 0;
-      let thisMonthAmount = 0;
-
-      if (orders) {
-          orders.forEach(order => {
-              if(order.status === 'completed'){
-                  const amt = Number(order.amount || 0);
-                  const orderDate = new Date(order.created_at);
-                  
-                  totalAmount += amt;
-                  
-                  if(orderDate >= startOfWeek) {
-                      thisWeekAmount += amt;
-                  }
-                  if(orderDate >= startOfMonth) {
-                      thisMonthAmount += amt;
-                  }
-              }
-          });
-      }
-
-      return {
-        profile: {
+      setLocalProfile({
           id: user.id,
           name: profile.full_name || '',
           email: user.email,
@@ -128,63 +103,86 @@ const Profile = () => {
           isAdmin: profile.role === 'admin' || profile.is_admin === true,
           division: profile.division || '',
           district: profile.district || ''
-        },
-        orders: orders || [],
-        stats: {
-            totalAmount,
-            thisWeekAmount,
-            thisMonthAmount
-        }
-      };
-    },
-    staleTime: 1000 * 60 * 2,
-  });
+      });
 
-  useEffect(() => {
-    if (serverData?.profile) {
-      setLocalProfile(serverData.profile);
-      // If already has location, set status to granted
-      if(serverData.profile.division && serverData.profile.district) {
+      if (profile.division && profile.district) {
           setLocationStatus('granted');
       }
-    }
-    if (serverData?.orders) {
-        setOrderHistory(serverData.orders);
-    }
-  }, [serverData]);
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (updatedData) => {
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (orders) {
+          setOrderHistory(orders);
+
+          // Calculate Order Stats
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); 
+          startOfWeek.setHours(0,0,0,0);
+          
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+          let totalAmt = 0;
+          let weekAmt = 0;
+          let monthAmt = 0;
+
+          orders.forEach(order => {
+              if(order.status === 'completed'){
+                  const amt = Number(order.amount || 0);
+                  const orderDate = new Date(order.created_at);
+                  
+                  totalAmt += amt;
+                  
+                  if(orderDate >= startOfWeek) weekAmt += amt;
+                  if(orderDate >= startOfMonth) monthAmt += amt;
+              }
+          });
+
+          setUserStats({
+              totalAmount: totalAmt,
+              thisWeekAmount: weekAmt,
+              thisMonthAmount: monthAmt
+          });
+      }
+    } catch (err) {
+        console.error("Profile Fetch Error:", err);
+        setErrorMsg(err.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setUpdating(true);
+    try {
         const { error } = await supabase
         .from('profiles')
         .update({ 
-            full_name: updatedData.name, 
-            phone: updatedData.phone,
-            division: updatedData.division,
-            district: updatedData.district
+            full_name: localProfile.name, 
+            phone: localProfile.phone,
+            division: localProfile.division,
+            district: localProfile.district
         })
         .eq('id', localProfile.id);
 
         if (error) throw error;
-    },
-    onSuccess: () => {
-        queryClient.invalidateQueries(['profile']);
         alert('Profile updated successfully! ✅');
-    },
-    onError: (err) => {
+        fetchProfileData(); // Refresh data
+    } catch (err) {
         alert('Error updating profile: ' + err.message);
+    } finally {
+        setUpdating(false);
     }
-  });
-
-  const handleUpdateProfile = (e) => {
-    e.preventDefault();
-    updateProfileMutation.mutate(localProfile);
   };
 
   const handleLogout = async () => {
     if(window.confirm('Are you sure you want to logout?')) {
       await supabase.auth.signOut();
-      queryClient.clear();
       navigate('/'); 
     }
   };
@@ -195,7 +193,6 @@ const Profile = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // 🔥 Improved Auto Location Detection Logic
   const handleAutoLocate = () => {
     setLocating(true);
 
@@ -217,7 +214,6 @@ const Profile = () => {
         async (position) => {
             const { latitude, longitude } = position.coords;
             try {
-                // Reverse Geocoding using a free reliable API
                 const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
                 
                 if (!res.ok) throw new Error("API Response Error");
@@ -248,7 +244,7 @@ const Profile = () => {
             setLocationStatus('denied');
             setLocating(false);
         },
-        { timeout: 10000, enableHighAccuracy: true } // Added high accuracy
+        { timeout: 10000, enableHighAccuracy: true } 
     );
   };
 
@@ -261,8 +257,8 @@ const Profile = () => {
     );
   }
 
-  if(isError) {
-      return <div className="text-center text-red-500 mt-10">Error loading profile: {error?.message}</div>
+  if (errorMsg) {
+      return <div className="text-center text-red-500 mt-10">Error loading profile: {errorMsg}</div>
   }
 
   return (
@@ -307,18 +303,18 @@ const Profile = () => {
             <Wallet size={100} className="absolute -bottom-6 -right-6 text-[#8B5CF6] opacity-10" />
           </div>
 
-          {/* New Stats Panel for Topup */}
+          {/* Stats Panel */}
           <div className="flex justify-between bg-[#1E293B] p-4 rounded-xl border border-[#334155] text-center shadow-lg">
             <div className="w-1/3 border-r border-[#334155]">
-                <b className="text-lg block text-white">৳{serverData?.stats?.thisWeekAmount || 0}</b>
+                <b className="text-lg block text-white">৳{userStats.thisWeekAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">This Week</span>
             </div>
             <div className="w-1/3 border-r border-[#334155]">
-                <b className="text-lg block text-yellow-500">৳{serverData?.stats?.thisMonthAmount || 0}</b>
+                <b className="text-lg block text-yellow-500">৳{userStats.thisMonthAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">This Month</span>
             </div>
             <div className="w-1/3">
-                <b className="text-lg block text-green-400">৳{serverData?.stats?.totalAmount || 0}</b>
+                <b className="text-lg block text-green-400">৳{userStats.totalAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">Total Spent</span>
             </div>
           </div>
@@ -495,7 +491,6 @@ const Profile = () => {
                     />
                   </div>
 
-                  {/* 🔥 Location Security Panel */}
                   <div className="border border-indigo-500/30 bg-indigo-900/10 rounded-xl p-4 mt-6">
                      <h4 className="text-sm font-bold text-indigo-300 mb-2 flex items-center gap-2">
                         <MapPin size={18}/> Location Security
@@ -563,8 +558,8 @@ const Profile = () => {
                      )}
                   </div>
 
-                  <button disabled={updateProfileMutation.isPending} type="submit" className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white py-3 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all flex items-center justify-center gap-2 mt-6">
-                    {updateProfileMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : 'Save Profile Changes'}
+                  <button disabled={updating} type="submit" className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white py-3 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all flex items-center justify-center gap-2 mt-6">
+                    {updating ? <Loader2 size={18} className="animate-spin" /> : 'Save Profile Changes'}
                   </button>
                 </form>
               </div>
@@ -572,7 +567,6 @@ const Profile = () => {
 
           </div>
         </div>
-
 
       </div>
     </div>
