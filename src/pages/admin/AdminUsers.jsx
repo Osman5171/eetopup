@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { 
     Search, User, Users, Ban, CheckCircle, XCircle, 
     Globe, ShieldAlert, Clock, RefreshCcw, Radar, X,
-    ShoppingCart, ArrowDownLeft
+    ShoppingCart, ArrowDownLeft, Mail, MapPin
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,7 +51,8 @@ const AdminUsers = () => {
       const [orders, deposits, whatsappLogs] = await Promise.all([
         supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('deposits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('whatsapp_change_logs').select('*').eq('user_id', user.id).order('changed_at', { ascending: false })
+        // WhatsApp Change logs if table exists, otherwise it returns empty silently
+        supabase.from('whatsapp_change_logs').select('*').eq('user_id', user.id).order('changed_at', { ascending: false }).catch(() => ({data: []}))
       ]);
 
       const stats = {
@@ -65,7 +66,7 @@ const AdminUsers = () => {
           ...(deposits.data || []).map(d => ({ ...d, txType: 'Deposit' }))
       ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      setUserDetails({ transactions: combinedTransactions, stats, whatsappLogs: whatsappLogs.data || [] });
+      setUserDetails({ transactions: combinedTransactions, stats, whatsappLogs: whatsappLogs?.data || [] });
     } catch (err) {
       console.error("Details Fetch Error:", err);
     } finally {
@@ -108,6 +109,8 @@ const AdminUsers = () => {
       alert("Balance Updated! ✅");
       setSelectedUser(null);
       fetchUsers();
+    } else {
+        alert("Error updating balance: " + error.message);
     }
   };
 
@@ -117,6 +120,8 @@ const AdminUsers = () => {
       alert(`User restricted to: ${banType} 🛑`);
       setBanModalUser(null);
       fetchUsers();
+    } else {
+        alert("Error updating ban status: " + error.message);
     }
   };
 
@@ -133,12 +138,20 @@ const AdminUsers = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    try { 
+        return new Date(dateString).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); 
+    } catch (e) { return 'Invalid Date'; }
   };
 
   const renderBanBadge = (type) => {
     if(!type || type === 'none') return null;
-    return <span className={`text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black tracking-wider ml-2`}>{type.toUpperCase()}</span>;
+    const config = {
+        'deposit_ban': { text: 'DEPOSIT BAN', classes: 'bg-yellow-600 text-black' },
+        'withdraw_ban': { text: 'WITHDRAW BAN', classes: 'bg-purple-600 text-white' },
+        'full_ban': { text: 'FULL BAN', classes: 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_red]' }
+    };
+    const badge = config[type] || { text: 'BANNED', classes: 'bg-red-600 text-white' };
+    return <span className={`text-[9px] ${badge.classes} px-1.5 py-0.5 rounded font-black tracking-wider ml-2`}>{badge.text}</span>;
   };
 
   return (
@@ -184,6 +197,8 @@ const AdminUsers = () => {
                         <h3 className="font-bold text-white group-hover:text-[#fbbf24] transition flex items-center flex-wrap gap-1">
                             {user.full_name || 'No Name'}
                             {user.role === 'admin' && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 font-bold">ADMIN</span>}
+                            {user.role === 'sub_admin' && <span className="text-[10px] bg-orange-500 text-black px-1.5 py-0.5 rounded ml-1 font-bold">SUB-ADMIN</span>}
+                            {user.role === 'collab' && <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded ml-1 font-bold">COLLAB</span>}
                             {renderBanBadge(user.ban_type)}
                         </h3>
                         <p className="text-xs text-gray-400">{user.phone || user.whatsapp || 'No Contact'}</p>
@@ -202,7 +217,7 @@ const AdminUsers = () => {
                 </div>
             </div>
             ))
-        }
+        )}
       </div>
 
       {/* --- FULL DETAILS MODAL --- */}
@@ -242,6 +257,7 @@ const AdminUsers = () => {
                         <>
                             {activeTab === 'info' && (
                                 <div className="space-y-6">
+                                    {/* Stats Grid */}
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="bg-[#1e293b] p-4 rounded-xl border border-gray-700 text-center shadow-inner">
                                             <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Spent</p>
@@ -257,22 +273,35 @@ const AdminUsers = () => {
                                         </div>
                                     </div>
 
+                                    {/* Info List */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Email Address</p>
-                                            <p className="text-sm text-gray-200 break-all">{viewDetailsUser.email || 'N/A'}</p>
+                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
+                                            <Mail className="text-gray-500" size={20}/>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Email Address</p>
+                                                <p className="text-sm text-gray-200 break-all">{viewDetailsUser.email || 'N/A'}</p>
+                                            </div>
                                         </div>
-                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Phone Number</p>
-                                            <p className="text-sm text-green-400 font-bold">{viewDetailsUser.phone || 'N/A'}</p>
+                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
+                                            <Clock className="text-gray-500" size={20}/>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Registration Date</p>
+                                                <p className="text-sm text-gray-200">{formatDate(viewDetailsUser.created_at)}</p>
+                                            </div>
                                         </div>
-                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Location</p>
-                                            <p className="text-sm text-gray-200">{viewDetailsUser.district || 'N/A'}, {viewDetailsUser.division || 'N/A'}</p>
+                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
+                                            <MapPin className="text-gray-500" size={20}/>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Location</p>
+                                                <p className="text-sm text-gray-200">{viewDetailsUser.district || 'N/A'}, {viewDetailsUser.division || 'N/A'}</p>
+                                            </div>
                                         </div>
-                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Joined Date</p>
-                                            <p className="text-sm text-gray-200">{formatDate(viewDetailsUser.created_at)}</p>
+                                        <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
+                                            <Wallet className="text-[#fbbf24]" size={20}/>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Current Balance</p>
+                                                <p className="text-sm font-black text-[#fbbf24]">৳{viewDetailsUser.balance}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -384,34 +413,6 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* --- ROLE MANAGEMENT MODAL --- */}
-      {roleModalUser && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
-            <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.2)] p-6 relative">
-                <button onClick={() => setRoleModalUser(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
-                
-                <h3 className="text-xl font-bold text-purple-400 mb-2 flex items-center gap-2"><ShieldAlert size={24}/> Manage Role</h3>
-                <p className="text-sm text-gray-300 mb-6">Select account role for <span className="font-bold text-white">{roleModalUser.full_name}</span></p>
-                
-                <div className="space-y-3 mb-6">
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'user' ? 'bg-blue-900/30 border-blue-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="userRole" value="user" checked={selectedRole === 'user'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-blue-500"/>
-                        <div><p className="font-bold text-blue-400 text-sm">Normal User</p></div>
-                    </label>
-
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'admin' ? 'bg-red-900/30 border-red-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="userRole" value="admin" checked={selectedRole === 'admin'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-red-500"/>
-                        <div><p className="font-bold text-red-500 text-sm">Super Admin</p></div>
-                    </label>
-                </div>
-
-                <button onClick={handleRoleUpdate} className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition shadow-lg">
-                    Save User Role
-                </button>
-            </div>
-        </div>
-      )}
-
       {/* --- EDIT BALANCE MODAL --- */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
@@ -428,6 +429,44 @@ const AdminUsers = () => {
                         <button onClick={handleUpdateBalance} className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20">Update Now</button>
                     </div>
                 </div>
+            </div>
+        </div>
+      )}
+
+      {/* --- ROLE MANAGEMENT MODAL --- */}
+      {roleModalUser && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
+            <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.2)] p-6 relative">
+                <button onClick={() => setRoleModalUser(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
+                
+                <h3 className="text-xl font-bold text-purple-400 mb-2 flex items-center gap-2"><ShieldAlert size={24}/> Manage Role</h3>
+                <p className="text-sm text-gray-300 mb-6">Select account role for <span className="font-bold text-white">{roleModalUser.full_name}</span></p>
+                
+                <div className="space-y-3 mb-6">
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'user' ? 'bg-blue-900/30 border-blue-500' : 'bg-[#0f172a] border-gray-700'}`}>
+                        <input type="radio" name="userRole" value="user" checked={selectedRole === 'user'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-blue-500"/>
+                        <div><p className="font-bold text-blue-400 text-sm">Normal User</p></div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'sub_admin' ? 'bg-orange-900/30 border-orange-500' : 'bg-[#0f172a] border-gray-700'}`}>
+                        <input type="radio" name="userRole" value="sub_admin" checked={selectedRole === 'sub_admin'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-orange-500"/>
+                        <div><p className="font-bold text-orange-400 text-sm">Sub Admin</p></div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'collab' ? 'bg-purple-900/30 border-purple-500' : 'bg-[#0f172a] border-gray-700'}`}>
+                        <input type="radio" name="userRole" value="collab" checked={selectedRole === 'collab'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-purple-500"/>
+                        <div><p className="font-bold text-purple-400 text-sm">Collab Partner</p></div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'admin' ? 'bg-red-900/30 border-red-500' : 'bg-[#0f172a] border-gray-700'}`}>
+                        <input type="radio" name="userRole" value="admin" checked={selectedRole === 'admin'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-red-500"/>
+                        <div><p className="font-bold text-red-500 text-sm">Super Admin</p></div>
+                    </label>
+                </div>
+
+                <button onClick={handleRoleUpdate} className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition shadow-lg">
+                    Save User Role
+                </button>
             </div>
         </div>
       )}
