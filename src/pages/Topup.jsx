@@ -14,7 +14,9 @@ const Topup = () => {
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('wallet');
+  
   const [playerId, setPlayerId] = useState('');
+  const [savedPhone, setSavedPhone] = useState(''); // ইউজারের সেভ করা নাম্বার ট্র‍্যাক করার জন্য
   
   const [quantity, setQuantity] = useState(1);
   
@@ -42,13 +44,31 @@ const Topup = () => {
     fetchInitialData();
   }, [productQuery]);
 
+  // প্রোডাক্ট চেঞ্জ হলে যদি ভাউচার হয়, তবে অটোমেটিক সেভ করা নাম্বার বসিয়ে দিবে
+  useEffect(() => {
+    if (isVoucher && savedPhone && !playerId) {
+      setPlayerId(savedPhone);
+    }
+  }, [isVoucher, savedPhone]);
+
   const fetchInitialData = async () => {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
+    
     if (session?.user) {
       setUser(session.user);
-      const { data: profile } = await supabase.from('profiles').select('balance').eq('id', session.user.id).single();
-      if (profile) setUserBalance(profile.balance || 0);
+      // ইউজারের ব্যালেন্স এবং ফোন নাম্বার নিয়ে আসা হচ্ছে
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('balance, phone, whatsapp')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile) {
+        setUserBalance(profile.balance || 0);
+        const phoneNum = profile.phone || profile.whatsapp || '';
+        setSavedPhone(phoneNum); // নাম্বার সেভ করে রাখলাম
+      }
     }
 
     let targetProduct = productQuery;
@@ -167,8 +187,14 @@ const Topup = () => {
             }
         }
 
+        // ব্যালেন্স কাটা হচ্ছে
         const newBalance = userBalance - finalPrice;
         await supabase.from('profiles').update({ balance: newBalance }).eq('id', user.id);
+
+        // 🔥 যদি ইউজার বক্সে নতুন WhatsApp নাম্বার দেয়, তবে সেটা প্রোফাইলে সেভ করে নিবে 🔥
+        if (isVoucher && playerId !== savedPhone) {
+          await supabase.from('profiles').update({ phone: playerId }).eq('id', user.id);
+        }
 
         const orderPackageName = isVoucher ? `${currentPkg.name} (x${quantity})` : currentPkg.name;
         const orderPlayerId = isVoucher ? `Contact: ${playerId} | Qty: ${quantity}` : playerId;
@@ -185,12 +211,7 @@ const Topup = () => {
           voucher_code: assignedVouchers 
         };
 
-        console.log("Order Data Sending to DB:", orderData);
-
-        const { data: newOrder, error: insertError } = await supabase
-          .from('orders')
-          .insert([orderData])
-          .select();
+        const { error: insertError } = await supabase.from('orders').insert([orderData]);
 
         if (discount > 0 && promoCode) {
           await supabase.rpc('increment_promo_usage', { p_code: promoCode.toUpperCase() });
@@ -199,8 +220,7 @@ const Topup = () => {
         if (insertError) {
            console.error("Database Insert Error:", insertError);
            alert("অর্ডার ডাটাবেসে সেভ হয়নি! Error: " + insertError.message);
-          
-           await supabase.from('profiles').update({ balance: userBalance }).eq('id', user.id);
+           await supabase.from('profiles').update({ balance: userBalance }).eq('id', user.id); // রিফান্ড
         } else {
           const telegramMsg = `🚨 <b>New Order!</b>\n\n👤 <b>User:</b> ${user.email}\n${isVoucher ? `📞 <b>Contact:</b> ${playerId}\n📦 <b>Qty:</b> ${quantity}` : `🎮 <b>ID:</b> <code>${playerId}</code>`}\n💎 <b>Package:</b> ${currentPkg.name}\n🛒 <b>Product:</b> ${productInfo.name}\n💰 <b>Paid:</b> ৳${finalPrice}\n💳 <b>Method:</b> Wallet`;
           await sendTelegramMessage(telegramMsg);
@@ -314,6 +334,7 @@ const Topup = () => {
                 placeholder="WhatsApp Number or Email..." 
                 className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-bold tracking-wider placeholder-gray-500 transition-all"
               />
+              <p className="text-[10px] text-gray-500 mt-2">* আপনার প্রোফাইল থেকে নাম্বারটি স্বয়ংক্রিয়ভাবে নেওয়া হয়েছে। পরিবর্তন করলে প্রোফাইলেও সেভ হয়ে যাবে।</p>
             </div>
           )}
 
