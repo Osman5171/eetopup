@@ -69,7 +69,7 @@ const MyOrders = () => {
                       Serial NO: <span className="text-white">{index + 1} <span className="text-gray-600 text-xs ml-1">(#{order.id})</span></span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
-                      Date: <span className="text-white">{new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      Date: <span className="text-white">{order?.created_at ? new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                       Package: <span className="text-white">{order.package_name}</span>

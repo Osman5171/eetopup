@@ -9,6 +9,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import WhatsAppFloat from './components/WhatsAppFloat';
 import InstallBanner from './components/InstallBanner';
+import MyOrders from './pages/MyOrders';
 import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
@@ -102,8 +103,10 @@ function App() {
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/my-orders" element={<MyOrders />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
+          
           <Route path="/privacy" element={<Privacy />} />
         </Route>
 

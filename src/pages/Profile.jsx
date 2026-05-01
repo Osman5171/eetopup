@@ -97,7 +97,7 @@ const Profile = () => {
           id: user.id,
           support_id: currentSupportId || '',
           name: profile.full_name || '',
-          email: user.email,
+          email: user?.email || 'N/A',
           phone: profile.phone || profile.whatsapp || '', 
           balance: profile.balance || 0,
           role: profile.role || 'user',
@@ -262,9 +262,9 @@ const Profile = () => {
           
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 flex flex-col items-center text-center relative overflow-hidden">
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#6D28D9] p-[3px] mb-4 shadow-[0_0_15px_rgba(139,92,246,0.3)] relative z-10">
-               <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
-                 {localProfile.email.charAt(0)}
-               </div>
+                <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
+                  {localProfile?.email ? localProfile.email.charAt(0).toUpperCase() : 'U'}
+                </div>
             </div>
             <h2 className="text-xl font-bold text-white relative z-10">{localProfile.name || 'Set Your Name'}</h2>
             <p className="text-gray-400 text-sm flex items-center justify-center gap-1 mt-1 relative z-10">
