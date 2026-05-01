@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { 
-    ArrowLeft, Search, User, Ban, CheckCircle, Edit3, 
-    DollarSign, Save, X, Globe, Shield, Users, 
-    Smartphone, Mail, Hash, Filter, ArrowUpDown, ShieldAlert, Clock,
-    ArrowDownLeft, ArrowUpRight, ShoppingCart, History, RefreshCcw, AlertCircle, AlertTriangle, Radar, Star, MapPin
+    Search, User, Users, Ban, CheckCircle, XCircle, 
+    Globe, ShieldAlert, Clock, RefreshCcw, Radar, X,
+    ShoppingCart, ArrowDownLeft, Mail, MapPin, Phone
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; 
 
-// Note: Ensure these two utility files exist, otherwise comment them out.
+// Note: Ensure these two utility files exist (you added them earlier)
 import { hasPermission } from '../../utils/permissions'; 
 import { logActivity } from '../../utils/activityLogger'; 
 
@@ -152,6 +151,16 @@ const AdminUsers = () => {
       },
       enabled: !!viewDetailsUser, 
   });
+
+  // Convert UUID to a readable 8-digit number for old users
+  const getNumericId = (uuid) => {
+    if(!uuid) return "00000000";
+    let hash = 0;
+    for (let i = 0; i < uuid.length; i++) {
+        hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash).toString().substring(0, 8).padStart(8, '0');
+  };
 
   // --- 5. MUTATIONS ---
   const balanceMutation = useMutation({
@@ -298,11 +307,11 @@ const AdminUsers = () => {
             </div>
             <div className="relative">
                 <Smartphone size={14} className="absolute left-3 top-3 text-gray-500"/>
-                <input type="text" placeholder="WhatsApp..." className="w-full bg-[#0f172a] pl-9 p-2.5 rounded border border-gray-600 text-sm focus:border-blue-500 outline-none" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                <input type="text" placeholder="Phone/WhatsApp..." className="w-full bg-[#0f172a] pl-9 p-2.5 rounded border border-gray-600 text-sm focus:border-blue-500 outline-none" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
             </div>
             <div className="relative">
                 <Hash size={14} className="absolute left-3 top-3 text-gray-500"/>
-                <input type="text" placeholder="User ID..." className="w-full bg-[#0f172a] pl-9 p-2.5 rounded border border-gray-600 text-sm focus:border-blue-500 outline-none" value={searchUID} onChange={e => setSearchUID(e.target.value)} />
+                <input type="text" placeholder="Support ID..." className="w-full bg-[#0f172a] pl-9 p-2.5 rounded border border-gray-600 text-sm focus:border-blue-500 outline-none" value={searchUID} onChange={e => setSearchUID(e.target.value)} />
             </div>
             <div className="relative">
                 <Globe size={14} className="absolute left-3 top-3 text-gray-500"/>
@@ -336,7 +345,7 @@ const AdminUsers = () => {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-lg text-white flex items-center flex-wrap gap-1 group-hover:text-[#fbbf24] transition">
-                                        {user.full_name || user.name || 'No Name'}
+                                        {user.full_name || 'No Name'}
 
                                         {/* SHOW ROLES */}
                                         {user.role === 'admin' && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-2 font-bold flex items-center gap-1"><ShieldAlert size={10}/> ADMIN</span>}
@@ -348,7 +357,7 @@ const AdminUsers = () => {
 
                                     <div className="text-xs text-gray-400 flex flex-col gap-0.5 mt-1">
                                         <span className="flex items-center gap-2">
-                                            ID: <span className="text-blue-400 font-mono">{user.support_id || user.id.slice(0,8)}</span>
+                                            ID: <span className="text-blue-400 font-mono">{user.support_id || getNumericId(user.id)}</span>
                                         </span>
                                     </div>
 
@@ -405,145 +414,71 @@ const AdminUsers = () => {
         }
       </div>
 
-      {/* --- 🔥 IP SCANNER MODAL --- */}
-      {showIpScanner && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4 backdrop-blur-md animate-in fade-in">
-            <div className="bg-[#1e293b] w-full max-w-4xl h-[85vh] flex flex-col rounded-2xl border border-gray-600 shadow-2xl relative overflow-hidden">
-                <div className="p-5 border-b border-gray-700 bg-[#0f172a] flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-bold text-red-500 flex items-center gap-2">
-                            <Radar className="animate-spin-slow"/> Duplicate IP Scanner
-                        </h2>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Found <span className="font-bold text-white">{duplicateIps.length}</span> IP addresses with multiple accounts attached.
-                        </p>
-                    </div>
-                    <button onClick={() => setShowIpScanner(false)} className="bg-gray-800 p-2 rounded-full hover:bg-red-600 hover:text-white transition"><X size={20}/></button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-5 bg-[#0f172a]/50 space-y-4">
-                    {duplicateIps.length === 0 ? (
-                        <div className="text-center py-16">
-                            <ShieldAlert size={48} className="mx-auto text-green-500 mb-3 opacity-50"/>
-                            <p className="text-green-500 font-bold text-lg">System is Clean! 🎉</p>
-                            <p className="text-gray-400 text-sm">No duplicate accounts found on any single IP.</p>
-                        </div>
-                    ) : (
-                        duplicateIps.map((group, idx) => (
-                            <div key={idx} className="bg-[#1e293b] rounded-xl border border-red-900/50 p-4 shadow-lg relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                                <div className="flex justify-between items-center mb-3 border-b border-gray-700 pb-3">
-                                    <h3 className="text-white font-bold flex items-center gap-2 text-lg">
-                                        <Globe size={18} className="text-red-400"/> {group.ip}
-                                    </h3>
-                                    <span className="bg-red-900/50 border border-red-500/30 text-red-400 text-xs px-2 py-1 rounded font-bold">
-                                        {group.users.length} Accounts Found
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {group.users.map(u => (
-                                        <div key={u.id} className="bg-[#0f172a] p-3 rounded-lg border border-gray-700 flex justify-between items-center hover:border-blue-500/50 transition">
-                                            <div>
-                                                <p className="font-bold text-gray-200 text-sm flex items-center gap-1">
-                                                    <User size={12} className="text-gray-500"/> {u.full_name || 'No Name'}
-                                                </p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <p className="text-[10px] text-gray-400">ID: <span className="text-blue-400 font-mono">{u.id.slice(0,8)}</span></p>
-                                                    {renderBanBadge(u.ban_type)}
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={() => { setShowIpScanner(false); fetchUserDetails(u); }} 
-                                                className="bg-blue-600/20 text-blue-400 p-2 rounded hover:bg-blue-600 hover:text-white transition text-xs font-bold"
-                                            >
-                                                View
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-        </div>
-      )}
-
       {/* --- FULL DETAILS MODAL --- */}
       {viewDetailsUser && (
         <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[70] p-4 backdrop-blur-md animate-in fade-in">
             <div className="bg-[#1e293b] w-full max-w-2xl h-[85vh] flex flex-col rounded-2xl border border-gray-600 shadow-2xl relative overflow-hidden">
                 <div className="p-5 border-b border-gray-700 bg-[#0f172a] flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="bg-[#fbbf24] p-2 rounded-full text-black">
-                            <User size={20}/>
-                        </div>
+                        <div className="bg-[#fbbf24] p-2 rounded-full text-black"><User size={20}/></div>
                         <div>
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 {viewDetailsUser.full_name || 'User Details'}
                                 {renderBanBadge(viewDetailsUser.ban_type)}
                             </h2>
-                            <p className="text-[10px] text-gray-400 font-mono">UID: {viewDetailsUser.id}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">UID: {viewDetailsUser.support_id || getNumericId(viewDetailsUser.id)}</p>
                         </div>
                     </div>
-                    <button onClick={() => setViewDetailsUser(null)} className="bg-gray-800 p-2 rounded-full hover:bg-red-600 hover:text-white transition"><X size={20}/></button>
+                    <button onClick={() => setViewDetailsUser(null)} className="text-gray-400 hover:text-white bg-gray-800 p-1.5 rounded-full transition"><X size={20}/></button>
                 </div>
 
                 <div className="flex bg-[#1e293b] border-b border-gray-700">
-                    <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'info' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/10' : 'border-transparent text-gray-400 hover:text-white'}`}>User Info</button>
-                    <button onClick={() => setActiveTab('wallet')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'wallet' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/10' : 'border-transparent text-gray-400 hover:text-white'}`}>Wallet History</button>
-                    <button onClick={() => setActiveTab('security')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'security' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/10' : 'border-transparent text-gray-400 hover:text-white'}`}>Security Logs</button>
+                    <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'info' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/5' : 'border-transparent text-gray-400 hover:text-white'}`}>Overview</button>
+                    <button onClick={() => setActiveTab('wallet')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'wallet' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/5' : 'border-transparent text-gray-400 hover:text-white'}`}>Transaction Logs</button>
+                    <button onClick={() => setActiveTab('security')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'security' ? 'border-[#fbbf24] text-[#fbbf24] bg-[#fbbf24]/5' : 'border-transparent text-gray-400 hover:text-white'}`}>Security History</button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-5 bg-[#0f172a]/50">
-                    {detailsLoading ? <div className="text-center py-10"><div className="animate-spin w-8 h-8 border-4 border-[#fbbf24] rounded-full border-t-transparent mx-auto"></div></div> : (
+                <div className="flex-1 overflow-y-auto p-5 bg-[#0f172a]/30">
+                    {detailsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-3">
+                            <RefreshCcw className="animate-spin text-[#fbbf24]" size={32}/>
+                            <p className="text-gray-400 text-sm animate-pulse">Fetching records...</p>
+                        </div>
+                    ) : (
                         <>
                             {/* TAB: INFO */}
                             {activeTab === 'info' && (
-                                <div className="space-y-5">
+                                <div className="space-y-6">
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="bg-[#1e293b] p-4 rounded-xl border border-gray-700 text-center shadow-inner">
                                             <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Spent</p>
-                                            <p className="text-xl font-black text-red-400">৳{userDetails.stats.totalSpent?.toFixed(2) || '0.00'}</p>
+                                            <p className="text-xl font-black text-red-400">৳{userDetails.stats.totalSpent?.toFixed(0) || 0}</p>
                                         </div>
                                         <div className="bg-[#1e293b] p-4 rounded-xl border border-gray-700 text-center shadow-inner">
                                             <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Deposit</p>
-                                            <p className="text-xl font-black text-green-400">৳{userDetails.stats.totalDeposit?.toFixed(2) || '0.00'}</p>
+                                            <p className="text-xl font-black text-green-400">৳{userDetails.stats.totalDeposit?.toFixed(0) || 0}</p>
                                         </div>
                                         <div className="bg-[#1e293b] p-4 rounded-xl border border-gray-700 text-center shadow-inner">
                                             <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Orders</p>
                                             <p className="text-xl font-black text-blue-400">{userDetails.stats.orderCount || 0}</p>
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
                                             <Mail className="text-gray-500" size={20}/>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Email Address</p>
-                                                <p className="text-sm text-gray-200 break-all">{viewDetailsUser.email || 'N/A'}</p>
-                                            </div>
+                                            <div><p className="text-[10px] text-gray-500 uppercase font-bold">Email Address</p><p className="text-sm text-gray-200 break-all">{viewDetailsUser.email || 'N/A'}</p></div>
                                         </div>
                                         <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
-                                            <Smartphone className="text-green-500" size={20}/>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Phone / WhatsApp</p>
-                                                <p className="text-sm text-green-400 font-bold">{viewDetailsUser.phone || viewDetailsUser.whatsapp || 'N/A'}</p>
-                                            </div>
+                                            <Phone className="text-green-500" size={20}/>
+                                            <div><p className="text-[10px] text-gray-500 uppercase font-bold">Phone / WhatsApp</p><p className="text-sm text-green-400 font-bold">{viewDetailsUser.phone || viewDetailsUser.whatsapp || 'N/A'}</p></div>
                                         </div>
                                         <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
                                             <MapPin className="text-gray-500" size={20}/>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Location</p>
-                                                <p className="text-sm text-gray-200">{viewDetailsUser.district || 'N/A'}, {viewDetailsUser.division || 'N/A'}</p>
-                                            </div>
+                                            <div><p className="text-[10px] text-gray-500 uppercase font-bold">Location</p><p className="text-sm text-gray-200">{viewDetailsUser.district || 'N/A'}, {viewDetailsUser.division || 'N/A'}</p></div>
                                         </div>
                                         <div className="bg-[#1e293b]/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
                                             <Clock className="text-gray-500" size={20}/>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Joined Date</p>
-                                                <p className="text-sm text-gray-200">{formatDate(viewDetailsUser.created_at, true)}</p>
-                                            </div>
+                                            <div><p className="text-[10px] text-gray-500 uppercase font-bold">Joined Date</p><p className="text-sm text-gray-200">{formatDate(viewDetailsUser.created_at)}</p></div>
                                         </div>
                                     </div>
                                 </div>
@@ -553,26 +488,23 @@ const AdminUsers = () => {
                             {activeTab === 'wallet' && (
                                 <div className="space-y-3 pb-5">
                                     {(!userDetails?.transactions || userDetails.transactions.length === 0) ? <p className="text-center text-gray-500 py-10 italic">No transaction history found.</p> : 
-                                     userDetails.transactions.map((tx, index) => (
-                                        <div key={tx.id || index} className={`p-4 rounded-xl flex justify-between items-center border border-gray-700/50 shadow-sm transition ${tx.txType === 'Deposit' ? 'bg-green-900/5 border-green-900/20' : 'bg-red-900/5 border-red-900/20'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-full border border-gray-700 ${tx.txType === 'Deposit' ? 'text-green-500' : 'text-red-500'}`}>
-                                                    {renderIcon(tx.iconName, tx.color)}
+                                        userDetails.transactions.map((tx, idx) => (
+                                            <div key={idx} className={`p-4 rounded-xl flex justify-between items-center border border-gray-700/50 shadow-sm transition ${tx.txType === 'Deposit' ? 'bg-green-900/5 border-green-900/20' : 'bg-red-900/5 border-red-900/20'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-full border border-gray-700 ${tx.txType === 'Deposit' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        {tx.txType === 'Deposit' ? <ArrowDownLeft size={18}/> : <ShoppingCart size={18}/>}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-200">{tx.txType === 'Deposit' ? `Added Money (${tx.method})` : `Bought: ${tx.package_name}`}</p>
+                                                        <p className="text-[10px] text-gray-500 font-medium">{formatDate(tx.date)}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-sm text-gray-200">{tx.label}</p>
-                                                    <p className="text-[10px] text-gray-500 font-medium">{formatDate(tx.date, true)}</p>
+                                                <div className="text-right">
+                                                    <p className={`font-black text-base ${tx.txType === 'Deposit' ? 'text-green-500' : 'text-red-500'}`}>{tx.txType === 'Deposit' ? '+' : '-'}৳{tx.amount}</p>
+                                                    <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-full mt-1 inline-block border ${(tx.status === 'completed' || tx.status === 'approved' || tx.status === 'Completed') ? 'text-green-500 border-green-500/30 bg-green-500/10' : tx.status === 'pending' ? 'text-orange-500 border-orange-500/30 bg-orange-500/10' : 'text-red-500 border-red-500/30 bg-red-500/10'}`}>{tx.status}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={`font-black text-base ${tx.txType === 'Deposit' ? 'text-green-500' : 'text-red-500'}`}>{tx.sign}৳{tx.amount}</p>
-                                                <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-full mt-1 inline-block border ${
-                                                    (tx.status === 'completed' || tx.status === 'approved' || tx.status === 'Completed') ? 'text-green-500 border-green-500/30 bg-green-500/10' : 
-                                                    tx.status === 'pending' ? 'text-orange-500 border-orange-500/30 bg-orange-500/10' : 'text-red-500 border-red-500/30 bg-red-500/10'
-                                                }`}>{tx.status}</span>
-                                            </div>
-                                        </div>
-                                     ))
+                                        ))
                                     }
                                 </div>
                             )}
@@ -584,15 +516,13 @@ const AdminUsers = () => {
                                         <h4 className="text-blue-400 font-bold text-xs mb-3 flex items-center gap-2 uppercase tracking-widest"><Globe size={14}/> IP History Logs</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {viewDetailsUser.ip_address ? viewDetailsUser.ip_address.split(',').map((ip, i) => (
-                                                <span key={i} className="text-blue-200 font-mono font-bold bg-blue-900/30 px-2.5 py-1 rounded text-[11px] border border-blue-700/30">
-                                                    {ip.trim()}
-                                                </span>
+                                                <span key={i} className="text-blue-200 font-mono font-bold bg-blue-900/30 px-2.5 py-1 rounded text-[11px] border border-blue-700/30">{ip.trim()}</span>
                                             )) : <p className="text-gray-500 text-xs italic">No IP address recorded for this user.</p>}
                                         </div>
                                     </div>
 
                                     <div className="bg-purple-900/10 p-5 rounded-xl border border-purple-800/30">
-                                        <h4 className="text-purple-400 font-bold text-xs mb-4 flex items-center gap-2 uppercase tracking-widest"><Clock size={14}/> Phone/WhatsApp Change Logs</h4>
+                                        <h4 className="text-purple-400 font-bold text-xs mb-4 flex items-center gap-2 uppercase tracking-widest"><Clock size={14}/> Phone Change History</h4>
                                         <div className="space-y-3">
                                             {(!userDetails?.whatsappLogs || userDetails.whatsappLogs.length === 0) ? <p className="text-gray-500 text-xs italic">No changes recorded.</p> : 
                                                 userDetails.whatsappLogs.map((log) => (
@@ -617,112 +547,112 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* --- BALANCE UPDATE MODAL --- */}
+      {/* --- EDIT BALANCE MODAL --- */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[80] p-4 backdrop-blur-sm animate-in zoom-in">
-            <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-gray-600 shadow-2xl p-6 relative">
-                <button onClick={() => setSelectedUser(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
-                
-                <h3 className="text-xl font-bold text-[#fbbf24] mb-2">Update Balance</h3>
-                <p className="text-xs text-gray-400 mb-4">Editing balance for <span className="text-white font-bold">{selectedUser.full_name || selectedUser.name}</span></p>
-
-                <form onSubmit={handleBalanceUpdate} className="space-y-4">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
+            <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl p-6 border border-gray-600 shadow-2xl">
+                <h3 className="text-lg font-bold mb-1 text-white">Manual Balance Adjustment</h3>
+                <p className="text-xs text-gray-400 mb-5">Updating balance for <span className="text-[#fbbf24] font-bold">{selectedUser.full_name}</span></p>
+                <form onSubmit={handleUpdateBalance} className="space-y-4">
                     <div>
-                        <label className="text-xs text-gray-500 font-bold uppercase ml-1 block mb-1">Set New Amount (৳)</label>
-                        <input 
-                            type="number" step="0.01" placeholder="e.g. 50" 
-                            className="w-full bg-[#0f172a] p-3.5 rounded-lg border border-gray-600 text-white font-black text-xl focus:border-blue-500 outline-none" 
-                            value={amount} onChange={e => setAmount(e.target.value)} required 
-                        />
+                        <label className="text-[10px] text-gray-500 uppercase font-black ml-1">Set New Amount (৳)</label>
+                        <input type="number" required className="w-full bg-[#0f172a] p-3 rounded-xl border border-gray-600 mt-1 font-black text-xl text-[#fbbf24] focus:border-blue-500 outline-none" value={amount} onChange={e => setAmount(e.target.value)} />
                     </div>
-                    <div>
-                        <label className="text-xs text-gray-500 font-bold uppercase ml-1 block mb-1">Remarks / Reason</label>
-                        <input 
-                            type="text" value={remarks} onChange={e => setRemarks(e.target.value)} 
-                            className="w-full bg-[#0f172a] p-3.5 rounded-lg border border-gray-600 text-white text-sm outline-none focus:border-blue-500"
-                        />
-                    </div>
-                    <div className="flex gap-3 mt-4">
-                        <button type="button" onClick={() => setSelectedUser(null)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3.5 rounded-xl transition shadow-lg">Cancel</button>
-                        <button type="submit" disabled={balanceMutation.isPending} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
-                            {balanceMutation.isPending ? 'Processing...' : 'Confirm Update'}
-                        </button>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => setSelectedUser(null)} className="flex-1 bg-gray-700 py-3 rounded-xl font-bold text-sm">Cancel</button>
+                        <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20">Update Now</button>
                     </div>
                 </form>
             </div>
         </div>
       )}
 
+      {/* --- BAN MODAL --- */}
+      {banModalUser && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
+            <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl p-6 border border-red-500/50 shadow-2xl">
+                <h3 className="text-xl font-black text-red-500 mb-2 flex items-center gap-2 uppercase italic"><Ban size={24}/> Restriction</h3>
+                <p className="text-xs text-gray-400 mb-6">Change access level for <span className="text-[#fbbf24] font-bold">{banModalUser.full_name}</span></p>
+                
+                <select className="w-full bg-[#0f172a] p-3.5 rounded-xl border border-gray-600 mb-6 outline-none font-bold text-sm" onChange={e => setBanType(e.target.value)} value={banType}>
+                    <option value="none">No Ban (Active)</option>
+                    <option value="deposit_ban">Deposit Ban</option>
+                    <option value="withdraw_ban">Withdraw Ban</option>
+                    <option value="full_ban">Full Account/IP Ban</option>
+                </select>
+
+                <div className="flex gap-3">
+                    <button onClick={() => setBanModalUser(null)} className="flex-1 bg-gray-700 py-3 rounded-xl font-bold">Close</button>
+                    <button onClick={handleBan} className="flex-1 bg-red-600 py-3 rounded-xl font-bold shadow-lg shadow-red-900/20">Apply Ban</button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* --- ROLE MANAGEMENT MODAL --- */}
       {roleModalUser && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[95] p-4 backdrop-blur-sm animate-in zoom-in">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 animate-in zoom-in duration-200">
             <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.2)] p-6 relative">
                 <button onClick={() => setRoleModalUser(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
                 
                 <h3 className="text-xl font-bold text-purple-400 mb-2 flex items-center gap-2"><ShieldAlert size={24}/> Manage Role</h3>
-                <p className="text-sm text-gray-300 mb-6">Select account role for <span className="font-bold text-white">{roleModalUser.full_name || roleModalUser.name}</span></p>
+                <p className="text-sm text-gray-300 mb-6">Select account role for <span className="font-bold text-white">{roleModalUser.full_name}</span></p>
                 
                 <div className="space-y-3 mb-6">
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'user' ? 'bg-blue-900/30 border-blue-500' : 'bg-[#0f172a] border-gray-700'}`}>
                         <input type="radio" name="userRole" value="user" checked={selectedRole === 'user'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-blue-500"/>
-                        <div><p className="font-bold text-blue-400 text-sm">Normal User</p><p className="text-[10px] text-gray-400">Regular buyer. No special access.</p></div>
+                        <div><p className="font-bold text-blue-400 text-sm">Normal User</p></div>
                     </label>
 
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'sub_admin' ? 'bg-orange-900/30 border-orange-500' : 'bg-[#0f172a] border-gray-700'}`}>
                         <input type="radio" name="userRole" value="sub_admin" checked={selectedRole === 'sub_admin'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-orange-500"/>
-                        <div><p className="font-bold text-orange-400 text-sm">Sub Admin</p><p className="text-[10px] text-gray-400">Manage orders, users, but limited access.</p></div>
+                        <div><p className="font-bold text-orange-400 text-sm">Sub Admin</p></div>
                     </label>
 
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedRole === 'admin' ? 'bg-red-900/30 border-red-500' : 'bg-[#0f172a] border-gray-700'}`}>
                         <input type="radio" name="userRole" value="admin" checked={selectedRole === 'admin'} onChange={(e) => setSelectedRole(e.target.value)} className="mt-1 accent-red-500"/>
-                        <div><p className="font-bold text-red-500 text-sm">Super Admin</p><p className="text-[10px] text-gray-400">Full access to entire system and finances.</p></div>
+                        <div><p className="font-bold text-red-500 text-sm">Super Admin</p></div>
                     </label>
                 </div>
 
-                <button onClick={() => roleMutation.mutate()} disabled={roleMutation.isPending} className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition shadow-lg">
-                    {roleMutation.isPending ? 'Updating...' : 'Save User Role'}
+                <button onClick={handleRoleUpdate} className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition shadow-lg">
+                    Save User Role
                 </button>
             </div>
         </div>
       )}
 
-      {/* --- BAN MODAL --- */}
-      {banModalUser && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[90] p-4 backdrop-blur-sm animate-in zoom-in">
-            <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] p-6 relative">
-                <button onClick={() => setBanModalUser(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
-                <h3 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2"><Ban size={24}/> Ban Management</h3>
-                <p className="text-sm text-gray-300 mb-6">Select restriction level for <span className="font-bold text-[#fbbf24]">{banModalUser.full_name || banModalUser.name}</span></p>
-                
-                <div className="space-y-3 mb-6">
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${banType === 'none' ? 'bg-gray-700 border-gray-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="banType" value="none" checked={banType === 'none'} onChange={(e) => setBanType(e.target.value)} className="mt-1"/>
-                        <div><p className="font-bold text-white text-sm">No Ban (Active)</p><p className="text-[10px] text-gray-400">User can do everything normally.</p></div>
-                    </label>
-
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${banType === 'withdraw_ban' ? 'bg-purple-900/30 border-purple-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="banType" value="withdraw_ban" checked={banType === 'withdraw_ban'} onChange={(e) => setBanType(e.target.value)} className="mt-1"/>
-                        <div><p className="font-bold text-purple-400 text-sm">Withdraw Ban</p><p className="text-[10px] text-gray-400">Cannot withdraw money.</p></div>
-                    </label>
-
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${banType === 'deposit_ban' ? 'bg-yellow-900/30 border-yellow-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="banType" value="deposit_ban" checked={banType === 'deposit_ban'} onChange={(e) => setBanType(e.target.value)} className="mt-1"/>
-                        <div><p className="font-bold text-yellow-500 text-sm">Deposit Ban</p><p className="text-[10px] text-gray-400">Blocks deposit completely.</p></div>
-                    </label>
-
-                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${banType === 'ip_ban' ? 'bg-red-900/30 border-red-500' : 'bg-[#0f172a] border-gray-700'}`}>
-                        <input type="radio" name="banType" value="ip_ban" checked={banType === 'ip_ban'} onChange={(e) => setBanType(e.target.value)} className="mt-1"/>
-                        <div><p className="font-bold text-red-500 text-sm">Full Account / IP Ban</p><p className="text-[10px] text-gray-400">Suspends account entirely.</p></div>
-                    </label>
+      {/* --- IP SCANNER MODAL --- */}
+      {showIpScanner && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+            <div className="bg-[#1e293b] w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-gray-600 p-6 flex flex-col">
+                <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                    <h2 className="text-xl font-bold text-red-500 flex items-center gap-2"><Radar className="animate-pulse"/> Security Scan: Duplicate IPs</h2>
+                    <button onClick={() => setShowIpScanner(false)} className="text-gray-400 hover:text-white bg-gray-800 p-1 rounded-full"><X/></button>
                 </div>
-
-                <button onClick={() => applyBanMutation.mutate()} disabled={applyBanMutation.isPending} className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-700 transition shadow-lg">
-                    {applyBanMutation.isPending ? 'Saving...' : 'Confirm Ban Status'}
-                </button>
+                <div className="flex-1 space-y-4">
+                    {duplicateIps.length === 0 ? (
+                        <div className="text-center py-10 opacity-50">
+                            <CheckCircle size={48} className="mx-auto text-green-500 mb-2"/>
+                            <p>No multi-account violations found.</p>
+                        </div>
+                    ) : duplicateIps.map(group => (
+                        <div key={group.ip} className="mb-4 bg-[#0f172a] border border-red-900/30 p-4 rounded-xl">
+                            <p className="text-sm font-bold text-red-400 mb-3 flex items-center gap-2 border-b border-red-900/20 pb-2"><Globe size={14}/> IP Address: {group.ip}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {group.users.map(u => (
+                                    <div key={u.id} className="text-xs flex justify-between bg-gray-800/50 p-2.5 rounded-lg border border-gray-700">
+                                        <span className="font-bold">{u.full_name}</span>
+                                        <span className="text-gray-500 font-mono">{u.id.slice(0,8)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
       )}
-
     </div>
   );
 };

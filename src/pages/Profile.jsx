@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash } from 'lucide-react';
+import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash, ShoppingBag } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -73,10 +73,17 @@ const Profile = () => {
         throw profileError;
       }
 
+      // অটো সাপোর্ট আইডি জেনারেট (যদি না থাকে)
+      let currentSupportId = profile?.support_id;
+      if (profile && !currentSupportId) {
+          currentSupportId = Math.floor(10000000 + Math.random() * 90000000).toString();
+          await supabase.from('profiles').update({ support_id: currentSupportId }).eq('id', user.id);
+      }
+
       if (!profile) {
          profile = {
             id: user.id,
-            support_id: '',
+            support_id: currentSupportId || '',
             full_name: user.user_metadata?.full_name || '',
             phone: '',
             balance: 0,
@@ -88,7 +95,7 @@ const Profile = () => {
 
       setLocalProfile({
           id: user.id,
-          support_id: profile.support_id || '',
+          support_id: currentSupportId || '',
           name: profile.full_name || '',
           email: user.email,
           phone: profile.phone || profile.whatsapp || '', 
@@ -103,7 +110,7 @@ const Profile = () => {
           setLocationStatus('granted');
       }
 
-      // Fetch orders only for calculating stats
+      // Fetch orders ONLY for calculating stats
       const { data: orders } = await supabase
         .from('orders')
         .select('amount, created_at, status')
@@ -329,11 +336,10 @@ const Profile = () => {
               to="/my-orders"
               className="w-full flex items-center justify-between p-4 text-gray-400 hover:bg-[#0F172A] transition"
             >
-              <div className="flex items-center gap-3 font-semibold"><Clock size={18} /> My Orders / Vouchers</div>
+              <div className="flex items-center gap-3 font-semibold"><ShoppingBag size={18} /> My Orders / Vouchers</div>
               <ChevronRight size={18} />
             </Link>
             
-            {/* Always active settings tab */}
             <div className="w-full flex items-center justify-between p-4 transition border-t border-[#334155] bg-[#8B5CF6]/10 text-[#A78BFA] border-l-4 border-[#8B5CF6]">
               <div className="flex items-center gap-3 font-semibold"><User size={18} /> Profile Settings</div>
               <ChevronRight size={18} />
