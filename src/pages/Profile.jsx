@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash, ShoppingBag, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash, ShoppingBag, CheckCircle2, Lock, Camera, Save, Activity, Code, Rocket, Copy } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -9,7 +9,12 @@ const Profile = () => {
   const [locationStatus, setLocationStatus] = useState('prompt'); 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [supportLinks, setSupportLinks] = useState({ whatsapp: '', telegram: '' });
+  const [orderCount, setOrderCount] = useState(0);
   
   const [localProfile, setLocalProfile] = useState({
     id: '',
@@ -17,6 +22,8 @@ const Profile = () => {
     name: '',
     email: '',
     phone: '',
+    whatsapp: '',
+    avatar_url: '',
     balance: 0,
     role: 'user',
     isAdmin: false,
@@ -157,6 +164,21 @@ const Profile = () => {
               thisWeekAmount: weekAmt,
               thisMonthAmount: monthAmt
           });
+          setOrderCount(orders.length);
+      }
+
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('key_name, key_value')
+        .in('key_name', ['support_whatsapp', 'support_telegram']);
+
+      if (settings) {
+        const links = { whatsapp: '', telegram: '' };
+        settings.forEach(item => {
+          if (item.key_name === 'support_whatsapp') links.whatsapp = item.key_value;
+          if (item.key_name === 'support_telegram') links.telegram = item.key_value;
+        });
+        setSupportLinks(links);
       }
 
     } catch (err) {
@@ -165,6 +187,37 @@ const Profile = () => {
     } finally {
         setLoading(false);
     }
+  };
+
+  const uploadAvatar = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      return alert('Max avatar size is 3MB.');
+    }
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Image = reader.result;
+        const { error } = await supabase.from('profiles').update({ avatar_url: base64Image }).eq('id', localProfile.id);
+        if (error) throw error;
+        setLocalProfile(prev => ({ ...prev, avatar_url: base64Image }));
+        alert('Profile picture updated successfully!');
+      } catch (err) {
+        console.error(err);
+        alert('Avatar upload failed: ' + err.message);
+      } finally {
+        setUploading(false);
+        event.target.value = null;
+      }
+    };
+    reader.onerror = () => {
+      alert('Failed to read image file.');
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpdateProfile = async (e) => {
@@ -176,6 +229,7 @@ const Profile = () => {
         .update({ 
             full_name: localProfile.name, 
             phone: localProfile.phone,
+            whatsapp: localProfile.whatsapp,
             division: localProfile.division,
             district: localProfile.district
         })
@@ -188,6 +242,27 @@ const Profile = () => {
         alert('Error updating profile: ' + err.message);
     } finally {
         setUpdating(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword) return alert('Please enter your current password.');
+    if (newPassword.length < 6) return alert('New password must be at least 6 characters.');
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: localProfile.email,
+        password: currentPassword
+      });
+      if (signInError) throw signInError;
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+      alert('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      alert('Password update failed: ' + err.message);
     }
   };
 
@@ -273,11 +348,18 @@ const Profile = () => {
         <div className="md:col-span-4 flex flex-col gap-6">
           
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 flex flex-col items-center text-center relative overflow-hidden">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#6D28D9] p-[3px] mb-4 shadow-[0_0_15px_rgba(139,92,246,0.3)] relative z-10">
-               <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
-                 {/* <-- ফিক্স করা হয়েছে: ইমেইল না থাকলেও যাতে ক্র্যাশ না করে */}
-                 {localProfile?.email ? localProfile.email.charAt(0).toUpperCase() : 'U'}
-               </div>
+            <div className="relative w-28 h-28 mx-auto mb-3">
+              <div className="w-28 h-28 rounded-full bg-[#0F172A] flex items-center justify-center border-4 border-[#8B5CF6] shadow-lg overflow-hidden">
+                {localProfile.avatar_url ? (
+                  <img src={localProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-4xl font-black uppercase">{localProfile.name ? localProfile.name.charAt(0) : 'U'}</span>
+                )}
+              </div>
+              <label htmlFor="avatar_upload" className="absolute bottom-0 right-0 bg-[#fbbf24] text-black p-2 rounded-full border-2 border-[#0F172A] cursor-pointer hover:scale-110 transition shadow-md">
+                {uploading ? <div className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full"></div> : <Camera size={16} />}
+              </label>
+              <input id="avatar_upload" type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading} className="hidden" />
             </div>
             <h2 className="text-xl font-bold text-white relative z-10">{localProfile.name || 'Set Your Name'}</h2>
             <p className="text-gray-400 text-sm flex items-center justify-center gap-1 mt-1 relative z-10">
@@ -288,6 +370,11 @@ const Profile = () => {
                 <Phone size={14} /> {localProfile.phone}
               </p>
             )}
+            {localProfile.whatsapp && localProfile.whatsapp !== localProfile.phone && (
+              <p className="text-gray-400 text-sm flex items-center justify-center gap-1 mt-1 relative z-10">
+                <Phone size={14} /> {localProfile.whatsapp}
+              </p>
+            )}
 
             <div className="mt-4 inline-flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-lg px-4 py-2 shadow-sm relative z-10">
                 <Hash size={14} className="text-[#8B5CF6]"/>
@@ -295,6 +382,20 @@ const Profile = () => {
                 <span className="text-[#A78BFA] font-mono font-bold text-sm tracking-widest">
                     {localProfile.support_id || localProfile.id?.slice(0,8) || ''}
                 </span>
+                <button onClick={() => { navigator.clipboard.writeText(localProfile.support_id || localProfile.id?.slice(0,8) || ''); alert('ID Copied!'); }} className="text-gray-400 hover:text-white transition"><Copy size={12} /></button>
+            </div>
+
+            <div className="mt-4 w-full text-left space-y-3 relative z-10">
+              <Link to="/support" className="w-full inline-flex items-center justify-between gap-3 bg-[#0F172A] border border-[#334155] rounded-2xl px-4 py-3 text-sm text-gray-200 hover:bg-[#152033] transition">
+                <span className="flex items-center gap-2"><Activity size={16} className="text-blue-400"/> Support</span>
+                <ChevronRight size={16} />
+              </Link>
+              {supportLinks.whatsapp && (
+                <a href={`https://wa.me/${supportLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-between gap-3 bg-[#063f1d] border border-[#064c24] rounded-2xl px-4 py-3 text-sm text-green-200 hover:bg-[#0a5532] transition">
+                  <span className="flex items-center gap-2"><Phone size={16} className="text-green-300"/> WhatsApp</span>
+                  <ChevronRight size={16} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -455,9 +556,60 @@ const Profile = () => {
                 </div>
 
                 <button disabled={updating} type="submit" className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white py-3 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all flex items-center justify-center gap-2 mt-6">
-                  {updating ? <Loader2 size={18} className="animate-spin" /> : 'Save Profile Changes'}
+                  {updating ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Save Profile Changes</>}
                 </button>
               </form>
+
+              <div className="bg-[#0F172A] border border-[#334155] rounded-2xl p-5 mt-6 shadow-md">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-white font-bold">Secure Password Change</h4>
+                    <p className="text-xs text-gray-400">Update your account password safely.</p>
+                  </div>
+                  <Lock size={20} className="text-[#8B5CF6]" />
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    placeholder="Current Password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full p-3 bg-[#1E293B] rounded-xl border border-[#334155] text-white outline-none focus:border-blue-500 transition"
+                  />
+                  <input
+                    type="password"
+                    placeholder="New Password (min 6 chars)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full p-3 bg-[#1E293B] rounded-xl border border-[#334155] text-white outline-none focus:border-purple-500 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    className="w-full bg-[#8B5CF6] hover:bg-purple-600 text-white py-3 rounded-xl font-bold transition"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <button onClick={() => navigate('/support')} className="w-full bg-[#1E293B] border border-[#334155] rounded-2xl p-4 flex items-center justify-between gap-3 text-left hover:border-[#8B5CF6] transition">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Need help?</p>
+                    <h4 className="text-white font-bold">Support Center</h4>
+                  </div>
+                  <Activity size={22} className="text-[#8B5CF6]" />
+                </button>
+                <button onClick={() => window.open(supportLinks.whatsapp ? `https://wa.me/${supportLinks.whatsapp.replace(/[^0-9]/g, '')}` : '#', '_blank')} className="w-full bg-[#1E293B] border border-[#334155] rounded-2xl p-4 flex items-center justify-between gap-3 text-left hover:border-green-400 transition">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Chat directly</p>
+                    <h4 className="text-white font-bold">WhatsApp Support</h4>
+                  </div>
+                  <Phone size={22} className="text-green-400" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
