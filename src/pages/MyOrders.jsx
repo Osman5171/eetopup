@@ -69,7 +69,10 @@ const MyOrders = () => {
                       Serial NO: <span className="text-white">{index + 1} <span className="text-gray-600 text-xs ml-1">(#{order.id})</span></span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
-                      Date: <span className="text-white">{order?.created_at ? new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</span>
+                      Date: <span className="text-white">
+                         {/* <-- ফিক্স করা হয়েছে: Date ক্র্যাশ এড়াতে সেফটি যোগ করা হয়েছে */}
+                         {order?.created_at ? new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}
+                      </span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                       Package: <span className="text-white">{order.package_name}</span>
@@ -81,7 +84,7 @@ const MyOrders = () => {
                       Info/ID: <span className="text-white">{order.player_id}</span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
-                      Price: <span className="text-[#00E5FF]">৳{order.amount}</span>
+                      Price: <span className="text-[#00E5FF]">৳ {order.amount}</span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2 items-center">
                       Status: 
@@ -98,7 +101,7 @@ const MyOrders = () => {
                 {order.voucher_code && order.voucher_code.trim() !== '' && (
                   <div className="mt-4 pt-4 border-t border-[#334155]">
                     <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider flex items-center gap-1">
-                      🎟️ Your Delivered Voucher Code(s):
+                        Your Delivered Voucher Code(s):
                     </p>
                     <div className="bg-[#1E293B] p-3 rounded-lg border border-[#8B5CF6]/30">
                       {order.voucher_code.split('\n\n').filter(c => c.trim()).map((code, idx) => (

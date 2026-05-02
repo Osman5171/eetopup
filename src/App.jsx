@@ -9,11 +9,11 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import WhatsAppFloat from './components/WhatsAppFloat';
 import InstallBanner from './components/InstallBanner';
-import MyOrders from './pages/MyOrders';
 import Home from './pages/Home';
 import Topup from './pages/Topup';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
+import MyOrders from './pages/MyOrders'; // <-- ফিক্স করা হয়েছে (নতুন লাইন)
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import Terms from './pages/Terms';
@@ -34,10 +34,8 @@ import AdminSlider from './pages/admin/AdminSlider';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminPromo from './pages/admin/AdminPromo';
 
-// সাধারণ ইউজারদের লেআউট (এখানে ডার্ক থিমের ব্যাকগ্রাউন্ড দেওয়া হয়েছে)
 const UserLayout = () => {
   return (
-    // 👈 bg-[#0F172A] (Dark) এবং text-white যোগ করা হয়েছে
     <div className="min-h-screen bg-[#0F172A] text-white font-sans flex flex-col pb-16 md:pb-0">
       <Header />
       <main className="container mx-auto px-4 pb-12 flex-grow">
@@ -49,7 +47,7 @@ const UserLayout = () => {
       <BottomNav />
     </div>
   );
-};
+}
 
 function App() {
   const [maintenance, setMaintenance] = useState({ active: false, endTime: null });
@@ -67,7 +65,6 @@ function App() {
       } catch (e) { console.error(e); }
     };
     runOneSignal();
-
     fetchSettings();
   }, []);
 
@@ -96,17 +93,15 @@ function App() {
   return (
     <Router>
       <Routes>
-
-        {/* User Der Jonno Routes (ডুপ্লিকেট রিমুভ করা হয়েছে) */}
+        {/* User Der Jonno Routes */}
         <Route element={<UserLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/topup" element={<Topup />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/my-orders" element={<MyOrders />} />
+          <Route path="/my-orders" element={<MyOrders />} /> {/* <-- ফিক্স করা হয়েছে (নতুন রুট) */}
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
-          
           <Route path="/privacy" element={<Privacy />} />
         </Route>
 
@@ -127,7 +122,6 @@ function App() {
 
         {/* 404 Not Found Route */}
         <Route path="*" element={<NotFound />} />
-
       </Routes>
     </Router>
   );

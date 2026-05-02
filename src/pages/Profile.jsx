@@ -5,13 +5,12 @@ import { supabase } from '../supabaseClient';
 
 const Profile = () => {
   const navigate = useNavigate();
-  
   const [locating, setLocating] = useState(false);
-  const [locationStatus, setLocationStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
+  const [locationStatus, setLocationStatus] = useState('prompt'); 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
+  
   const [localProfile, setLocalProfile] = useState({
     id: '',
     support_id: '',
@@ -31,7 +30,6 @@ const Profile = () => {
     thisMonthAmount: 0
   });
 
-  // Bangladesh Divisions and Districts Data for Manual Fallback
   const locations = {
     "Dhaka": ["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"],
     "Chattogram": ["Chattogram", "Bandarban", "Brahmanbaria", "Chandpur", "Cox's Bazar", "Cumilla", "Feni", "Khagrachhari", "Lakshmipur", "Noakhali", "Rangamati"],
@@ -62,7 +60,6 @@ const Profile = () => {
       }
 
       const user = session.user;
-
       let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -73,7 +70,6 @@ const Profile = () => {
         throw profileError;
       }
 
-      // অটো সাপোর্ট আইডি জেনারেট (যদি না থাকে)
       let currentSupportId = profile?.support_id;
       if (profile && !currentSupportId) {
           currentSupportId = Math.floor(10000000 + Math.random() * 90000000).toString();
@@ -97,7 +93,7 @@ const Profile = () => {
           id: user.id,
           support_id: currentSupportId || '',
           name: profile.full_name || '',
-          email: user?.email || 'N/A',
+          email: user?.email || '', // <-- ফিক্স করা হয়েছে
           phone: profile.phone || profile.whatsapp || '', 
           balance: profile.balance || 0,
           role: profile.role || 'user',
@@ -110,7 +106,6 @@ const Profile = () => {
           setLocationStatus('granted');
       }
 
-      // Fetch orders ONLY for calculating stats
       const { data: orders } = await supabase
         .from('orders')
         .select('amount, created_at, status')
@@ -146,6 +141,7 @@ const Profile = () => {
               thisMonthAmount: monthAmt
           });
       }
+
     } catch (err) {
         console.error("Profile Fetch Error:", err);
         setErrorMsg(err.message);
@@ -169,8 +165,8 @@ const Profile = () => {
         .eq('id', localProfile.id);
 
         if (error) throw error;
-        alert('Profile updated successfully! ✅');
-        fetchProfileData(); 
+        alert('Profile updated successfully!');
+        fetchProfileData();
     } catch (err) {
         alert('Error updating profile: ' + err.message);
     } finally {
@@ -187,16 +183,15 @@ const Profile = () => {
 
   const handleAutoLocate = () => {
     setLocating(true);
-
     if (!("geolocation" in navigator)) {
-        alert("আপনার ব্রাউজারে লোকেশন ট্র্যাকিং সাপোর্ট করে না!");
+        alert("Geolocation is not supported by your browser!");
         setLocationStatus('denied');
         setLocating(false);
         return;
     }
 
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-         alert("নিরাপত্তার কারণে শুধুমাত্র HTTPS কানেকশনে অটো লোকেশন কাজ করে। দয়া করে ম্যানুয়ালি সিলেক্ট করুন।");
+         alert("Geolocation requires HTTPS.");
          setLocationStatus('denied');
          setLocating(false);
          return;
@@ -219,13 +214,13 @@ const Profile = () => {
                         district: data.city || data.locality || prev.district
                     }));
                     setLocationStatus('granted');
-                    alert("লোকেশন সফলভাবে ডিটেক্ট করা হয়েছে! ✅");
+                    alert("Location detected successfully!");
                 } else {
                     throw new Error("No data returned");
                 }
             } catch (e) {
                 console.error("Geocoding failed", e);
-                alert("আপনার লোকেশন খুঁজে পাওয়া যাচ্ছে না। দয়া করে ম্যানুয়ালি সিলেক্ট করুন।");
+                alert("Failed to get location details. Please fill manually.");
                 setLocationStatus('denied');
             } finally {
                 setLocating(false);
@@ -262,13 +257,14 @@ const Profile = () => {
           
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 flex flex-col items-center text-center relative overflow-hidden">
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#6D28D9] p-[3px] mb-4 shadow-[0_0_15px_rgba(139,92,246,0.3)] relative z-10">
-                <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
-                  {localProfile?.email ? localProfile.email.charAt(0).toUpperCase() : 'U'}
-                </div>
+               <div className="w-full h-full bg-[#0F172A] rounded-full flex items-center justify-center text-white text-4xl font-black uppercase">
+                 {/* <-- ফিক্স করা হয়েছে: ইমেইল না থাকলেও যাতে ক্র্যাশ না করে */}
+                 {localProfile?.email ? localProfile.email.charAt(0).toUpperCase() : 'U'}
+               </div>
             </div>
             <h2 className="text-xl font-bold text-white relative z-10">{localProfile.name || 'Set Your Name'}</h2>
             <p className="text-gray-400 text-sm flex items-center justify-center gap-1 mt-1 relative z-10">
-              <Mail size={14} /> {localProfile.email}
+              <Mail size={14} /> {localProfile.email || 'No Email'}
             </p>
             {localProfile.phone && (
               <p className="text-gray-400 text-sm flex items-center justify-center gap-1 mt-1 relative z-10">
@@ -276,7 +272,6 @@ const Profile = () => {
               </p>
             )}
 
-            {/* 🔥 Unique Support ID Display 🔥 */}
             <div className="mt-4 inline-flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-lg px-4 py-2 shadow-sm relative z-10">
                 <Hash size={14} className="text-[#8B5CF6]"/>
                 <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">UID:</span>
@@ -299,18 +294,17 @@ const Profile = () => {
             <Wallet size={100} className="absolute -bottom-6 -right-6 text-[#8B5CF6] opacity-10" />
           </div>
 
-          {/* Stats Panel */}
           <div className="flex justify-between bg-[#1E293B] p-4 rounded-xl border border-[#334155] text-center shadow-lg">
             <div className="w-1/3 border-r border-[#334155]">
-                <b className="text-lg block text-white">৳{userStats.thisWeekAmount}</b>
+                <b className="text-lg block text-white">৳ {userStats.thisWeekAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">This Week</span>
             </div>
             <div className="w-1/3 border-r border-[#334155]">
-                <b className="text-lg block text-yellow-500">৳{userStats.thisMonthAmount}</b>
+                <b className="text-lg block text-yellow-500">৳ {userStats.thisMonthAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">This Month</span>
             </div>
             <div className="w-1/3">
-                <b className="text-lg block text-green-400">৳{userStats.totalAmount}</b>
+                <b className="text-lg block text-green-400">৳ {userStats.totalAmount}</b>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">Total Spent</span>
             </div>
           </div>
@@ -326,12 +320,11 @@ const Profile = () => {
                   <p className="text-[10px] text-gray-400">Manage packages & users</p>
                 </div>
               </div>
-              <span className="text-red-400 font-black group-hover:translate-x-1 transition-transform">→</span>
+              <span className="text-red-400 font-black group-hover:translate-x-1 transition-transform">➔</span>
             </Link>
           )}
 
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] overflow-hidden">
-            {/* 🔥 My Orders Page Link 🔥 */}
             <Link 
               to="/my-orders"
               className="w-full flex items-center justify-between p-4 text-gray-400 hover:bg-[#0F172A] transition"
@@ -352,13 +345,14 @@ const Profile = () => {
 
         </div>
 
-        {/* Right Content Area (Only Settings Now) */}
+        {/* Right Content Area */}
         <div className="md:col-span-8">
           <div className="bg-[#1E293B] rounded-2xl shadow-lg border border-[#334155] p-6 h-full">
             <div>
               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <User size={20} className="text-[#8B5CF6]" /> Edit Profile
               </h3>
+
               <form onSubmit={handleUpdateProfile} className="space-y-4 max-w-md">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">Full Name</label>
@@ -384,14 +378,14 @@ const Profile = () => {
                       <MapPin size={18}/> Location Security
                    </h4>
                    <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                      অ্যাকাউন্টের নিরাপত্তা নিশ্চিত করতে এবং অবৈধ ট্রানজ্যাকশন (Fraud) ঠেকাতে আমরা আপনার লোকেশন ভেরিফাই করতে চাই।
+                        To protect your account from unauthorized access, please provide your current division and district.
                    </p>
                    
                    {locationStatus !== 'granted' && locationStatus !== 'denied' && (
-                       <button 
-                          type="button" 
-                          onClick={handleAutoLocate} 
-                          disabled={locating}
+                       <button
+                           type="button"
+                           onClick={handleAutoLocate}
+                           disabled={locating}
                           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold py-2.5 rounded-lg flex justify-center items-center gap-2 transition"
                        >
                           {locating ? <Loader2 size={16} className="animate-spin" /> : <Map size={16} />}
@@ -402,32 +396,29 @@ const Profile = () => {
                    {locationStatus === 'denied' && (
                        <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-lg mb-4">
                            <p className="text-xs font-bold text-orange-400 flex items-center gap-1 mb-2">
-                              <AlertTriangle size={14}/> আপনি লোকেশন পারমিশন ব্লক করেছেন! 
-                           </p>
-                           <p className="text-[10px] text-gray-400 mb-3">
-                              নিরাপত্তা ভেরিফিকেশনের জন্য দয়া করে নিচের ফর্ম থেকে আপনার বর্তমান লোকেশন ম্যানুয়ালি সিলেক্ট করুন।
+                              <AlertTriangle size={14}/> Please select manually
                            </p>
                            <div className="space-y-3">
                               <div>
-                                  <select 
-                                      value={localProfile.division} 
-                                      onChange={(e) => setLocalProfile({...localProfile, division: e.target.value, district: ''})}
+                                  <select
+                                       value={localProfile.division}
+                                       onChange={(e) => setLocalProfile({...localProfile, division: e.target.value, district: ''})}
                                       className="w-full bg-[#0F172A] text-white border border-[#334155] rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none transition text-sm"
                                       required={locationStatus === 'denied'}
                                   >
-                                      <option value="">Select Division (বিভাগ)</option>
+                                      <option value="">Select Division</option>
                                       {divisions.map(div => <option key={div} value={div}>{div}</option>)}
                                   </select>
                               </div>
                               <div>
-                                  <select 
-                                      value={localProfile.district} 
-                                      onChange={(e) => setLocalProfile({...localProfile, district: e.target.value})}
+                                  <select
+                                       value={localProfile.district}
+                                       onChange={(e) => setLocalProfile({...localProfile, district: e.target.value})}
                                       disabled={!localProfile.division}
                                       className="w-full bg-[#0F172A] text-white border border-[#334155] rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none transition text-sm disabled:opacity-50"
                                       required={locationStatus === 'denied'}
                                   >
-                                      <option value="">Select District (জেলা)</option>
+                                      <option value="">Select District</option>
                                       {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
                                   </select>
                               </div>
@@ -453,7 +444,6 @@ const Profile = () => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
