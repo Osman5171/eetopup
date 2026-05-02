@@ -169,16 +169,29 @@ const Profile = () => {
 
       const { data: settings } = await supabase
         .from('settings')
-        .select('key_name, key_value')
-        .in('key_name', ['support_whatsapp', 'support_telegram']);
+        .select('whatsapp_link, support_telegram')
+        .eq('id', 1)
+        .single();
 
       if (settings) {
-        const links = { whatsapp: '', telegram: '' };
-        settings.forEach(item => {
-          if (item.key_name === 'support_whatsapp') links.whatsapp = item.key_value;
-          if (item.key_name === 'support_telegram') links.telegram = item.key_value;
+        setSupportLinks({
+          whatsapp: settings.whatsapp_link || '',
+          telegram: settings.support_telegram || ''
         });
-        setSupportLinks(links);
+      } else {
+        const { data: fallbackSettings } = await supabase
+          .from('settings')
+          .select('key_name, key_value')
+          .in('key_name', ['support_whatsapp', 'support_telegram']);
+
+        if (fallbackSettings) {
+          const links = { whatsapp: '', telegram: '' };
+          fallbackSettings.forEach(item => {
+            if (item.key_name === 'support_whatsapp') links.whatsapp = item.key_value;
+            if (item.key_name === 'support_telegram') links.telegram = item.key_value;
+          });
+          setSupportLinks(links);
+        }
       }
 
     } catch (err) {

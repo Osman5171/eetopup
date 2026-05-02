@@ -40,7 +40,7 @@ const UserLayout = () => {
   return (
     <div className="min-h-screen bg-[#0F172A] text-white font-sans flex flex-col pb-16 md:pb-0">
       <Header />
-      <main className="container mx-auto px-4 pb-12 flex-grow">
+      <main className="container mx-auto px-4 pb-28 flex-grow">
         <Outlet />
       </main>
       <Footer />

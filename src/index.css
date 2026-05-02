@@ -44,3 +44,19 @@
 .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* OneSignal repositioning so the notification prompt does not cover profile/account UI */
+#onesignal-bell-launcher,
+#onesignal-bell-container,
+#onesignal-bell-launcher-container,
+#onesignal-bell,
+#onesignal-slidedown-container,
+#onesignal-slidedown-prompt {
+    bottom: 6.5rem !important;
+    right: 1rem !important;
+    z-index: 9999 !important;
+}
+
+#onesignal-slidedown-prompt {
+    margin-bottom: 0 !important;
+}

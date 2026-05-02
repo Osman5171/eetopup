@@ -61,7 +61,7 @@ const Header = () => {
               <Link to="/" className="hover:text-[#8B5CF6] transition">Home</Link>
               <Link to="/contact" className="hover:text-[#8B5CF6] transition">Add Money</Link>
               <Link to={user ? "/my-orders" : "/auth"} className="hover:text-[#8B5CF6] transition">My Orders</Link>
-              <a href="https://wa.me/YOUR_NUMBER" target="_blank" rel="noreferrer" className="hover:text-[#8B5CF6] transition">Support</a>
+              <Link to="/support" className="hover:text-[#8B5CF6] transition">Support</Link>
               <Link to={user ? "/profile" : "/auth"} className="hover:text-[#8B5CF6] transition">Account</Link>
             </div>
             

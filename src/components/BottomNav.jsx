@@ -39,16 +39,16 @@ const BottomNav = () => {
 
       {/* UNIQUE HALF-FLOATING SUPPORT BUTTON */}
       <div className="relative flex-1 flex justify-center">
-        <Link to="/support" className="group absolute -top-7 flex flex-col items-center">
+        <Link to="/support" className="group absolute -top-10 flex flex-col items-center">
           <div className={`
               h-16 w-16 rounded-full flex items-center justify-center
-              border-4 border-[#1E293B] shadow-lg shadow-blue-500/40
+              border-4 border-[#1E293B] shadow-[0_18px_35px_rgba(59,130,246,0.25)]
               transition-all duration-300 transform ${isActive('/support') ? 'scale-110' : 'group-hover:scale-110'}
-              ${isActive('/support') ? 'bg-gradient-to-tr from-[#8B5CF6] to-purple-500 text-white' : 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white'}
+              ${isActive('/support') ? 'bg-gradient-to-tr from-[#8B5CF6] to-[#7C3AED] text-white' : 'bg-gradient-to-tr from-[#2563EB] to-[#06B6D4] text-white'}
             `}>
             <Headphones size={28} className={isActive('/support') ? 'animate-none' : 'group-hover:rotate-12 transition duration-300'} />
           </div>
-          <span className={`text-[10px] font-bold mt-1 ${isActive('/support') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
+          <span className={`text-[10px] font-bold mt-1 ${isActive('/support') ? 'text-[#A78BFA]' : 'text-gray-200'}`}>
             Support
           </span>
         </Link>

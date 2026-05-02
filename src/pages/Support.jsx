@@ -6,22 +6,20 @@ const Support = () => {
   const [links, setLinks] = useState({ whatsapp: '', telegram: '' });
   const [loading, setLoading] = useState(true);
 
-  // ডাটাবেস (settings টেবিল) থেকে সাপোর্ট লিংক ফেচ করা
   useEffect(() => {
     const fetchSupportLinks = async () => {
       try {
         const { data, error } = await supabase
           .from('settings')
-          .select('key_name, key_value')
-          .in('key_name', ['support_whatsapp', 'support_telegram']);
-
+          .select('whatsapp_link, support_telegram')
+          .eq('id', 1)
+          .single();
+          
         if (data) {
-          const newLinks = { whatsapp: '', telegram: '' };
-          data.forEach(item => {
-            if (item.key_name === 'support_whatsapp') newLinks.whatsapp = item.key_value;
-            if (item.key_name === 'support_telegram') newLinks.telegram = item.key_value;
+          setLinks({ 
+              whatsapp: data.whatsapp_link || '', 
+              telegram: data.support_telegram || '' 
           });
-          setLinks(newLinks);
         }
       } catch (err) {
         console.error("Error fetching support links:", err);
@@ -29,21 +27,18 @@ const Support = () => {
         setLoading(false);
       }
     };
-
     fetchSupportLinks();
   }, []);
 
   const handleWhatsApp = () => {
     if (links.whatsapp) {
-      const number = links.whatsapp.replace(/[^0-9]/g, ''); 
-      window.open(`https://wa.me/${number}`, '_blank');
+      window.open(links.whatsapp.includes('http') ? links.whatsapp : `https://wa.me/${links.whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
     }
   };
 
   const handleTelegram = () => {
     if (links.telegram) {
-      const username = links.telegram.replace('@', '');
-      window.open(`https://t.me/${username}`, '_blank');
+      window.open(links.telegram.includes('http') ? links.telegram : `https://t.me/${links.telegram.replace('@', '')}`, '_blank');
     }
   };
 
@@ -56,59 +51,57 @@ const Support = () => {
 
   return (
     <div className="min-h-[85vh] p-5 flex flex-col items-center pt-10">
-      
       <h2 className="text-2xl font-bold text-white mb-2">Need Help?</h2>
       <p className="text-gray-400 mb-8 text-center text-sm">
         Contact our official support team for any queries or issues.
       </p>
 
       <div className="w-full max-w-md space-y-4">
-        
         {/* Telegram Card */}
-        <div 
+        <button
           onClick={handleTelegram}
-          className="relative bg-[#0088cc] rounded-xl overflow-hidden cursor-pointer shadow-lg transform transition active:scale-95 hover:shadow-cyan-500/20 group"
+          disabled={!links.telegram}
+          className={`relative rounded-xl overflow-hidden transition transform ${links.telegram ? 'cursor-pointer hover:shadow-cyan-500/20 active:scale-95' : 'cursor-not-allowed opacity-60'} bg-[#0088cc] shadow-lg`}
         >
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+          <div className="absolute top-0 right-0 p-4 opacity-10 transition">
             <Send size={80} color="white" />
           </div>
-          
           <div className="p-5 flex items-center gap-5">
             <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-               <Send size={32} className="text-white fill-current" />
+               <Send size={32} className="text-white" />
             </div>
             <div>
                <h3 className="text-lg font-bold text-white tracking-wide">TELEGRAM SUPPORT</h3>
                <p className="text-blue-100 text-xs font-medium">Join our channel & chat</p>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* WhatsApp Card */}
-        <div 
+        <button
           onClick={handleWhatsApp}
-          className="relative bg-[#25D366] rounded-xl overflow-hidden cursor-pointer shadow-lg transform transition active:scale-95 hover:shadow-green-500/20 group"
+          disabled={!links.whatsapp}
+          className={`relative rounded-xl overflow-hidden transition transform ${links.whatsapp ? 'cursor-pointer hover:shadow-green-500/20 active:scale-95' : 'cursor-not-allowed opacity-60'} bg-[#25D366] shadow-lg`}
         >
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+          <div className="absolute top-0 right-0 p-4 opacity-10 transition">
             <MessageCircle size={80} color="white" />
           </div>
-          
           <div className="p-5 flex items-center gap-5">
             <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-               <MessageCircle size={32} className="text-white fill-current" />
+               <MessageCircle size={32} className="text-white" />
             </div>
             <div>
                <h3 className="text-lg font-bold text-white tracking-wide">WHATSAPP SUPPORT</h3>
                <p className="text-green-100 text-xs font-medium">Chat directly with admin</p>
             </div>
           </div>
-        </div>
-
+        </button>
       </div>
-
-      <p className="mt-10 text-gray-500 text-xs text-center px-6">
-        Note: Support is available 24/7. Please allow some time for a response during busy hours.
-      </p>
+      {!links.whatsapp && !links.telegram && (
+        <p className="mt-4 text-sm text-gray-300 text-center">
+          Support links are not configured. Please contact the admin from the app or use the support button below.
+        </p>
+      )}
     </div>
   );
 };
