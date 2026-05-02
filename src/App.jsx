@@ -20,6 +20,7 @@ import NotFound from './pages/NotFound';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Maintenance from './pages/Maintenance';
+import Support from './pages/Support';
 
 // Admin Components & Layout
 import AdminBrands from './pages/admin/AdminBrands';
@@ -109,6 +110,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
           </Route>

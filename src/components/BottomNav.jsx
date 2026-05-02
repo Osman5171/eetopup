@@ -37,15 +37,30 @@ const BottomNav = () => {
         <span className="text-[10px] font-bold">Add Money</span>
       </Link>
 
+      {/* UNIQUE FLOATING SUPPORT BUTTON */}
+      <div className="relative -top-5">
+        <Link to="/support" className="group flex flex-col items-center justify-center">
+            <div className={`
+                w-14 h-14 rounded-full flex items-center justify-center 
+                border-4 border-[#1E293B] shadow-lg shadow-blue-500/40 
+                transition-all duration-300 transform group-hover:scale-110
+                ${isActive('/support') 
+                    ? 'bg-gradient-to-tr from-[#8B5CF6] to-purple-500 text-white' 
+                    : 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white'
+                }
+            `}>
+                <Headphones size={28} className={isActive('/support') ? 'animate-none' : 'group-hover:rotate-12 transition duration-300'} />
+            </div>
+            <span className={`text-[10px] font-bold mt-1 ${isActive('/support') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
+                Support
+            </span>
+        </Link>
+      </div>
+
       <Link to={session ? "/my-orders" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/my-orders') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
         <Clock size={22} className={isActive('/my-orders') ? "fill-purple-500/20" : ""} />
         <span className="text-[10px] font-bold">My Order</span>
       </Link>
-
-      <a href="https://wa.me/YOUR_NUMBER" target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 p-2 transition-all duration-300 text-gray-400 hover:text-[#A78BFA]">
-        <Headphones size={22} />
-        <span className="text-[10px] font-bold">Support</span>
-      </a>
 
       <Link to={session ? "/profile" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/profile') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
         <User size={22} className={isActive('/profile') ? "fill-purple-500/20" : ""} />
