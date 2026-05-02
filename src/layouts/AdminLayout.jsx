@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Users, CreditCard, 
   Settings, LogOut, Menu, X, Package, 
-  Image as ImageIcon, Loader2, Tag, LayoutGrid, Box, Ticket // 👈 Ticket আইকনটি যুক্ত করা হয়েছে
+  Image as ImageIcon, Loader2, Tag, LayoutGrid, Box, Ticket, Home // 👈 Home আইকন যুক্ত করা হয়েছে
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -122,12 +122,22 @@ const AdminLayout = () => {
         
         {/* Top Navbar */}
         <header className="h-16 bg-white shadow-sm flex items-center justify-between px-4 lg:px-8 z-10">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-            className="text-gray-600 hover:text-[#0052FF] transition p-2 bg-gray-100 rounded-lg"
-          >
-            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+              className="text-gray-600 hover:text-[#0052FF] transition p-2 bg-gray-100 rounded-lg"
+            >
+              {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <Link 
+              to="/" 
+              className="text-gray-600 hover:text-[#0052FF] transition p-2 bg-gray-100 rounded-lg flex items-center gap-2"
+              title="Go to Home"
+            >
+              <Home size={20} />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
+          </div>
           
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
