@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash, ShoppingBag } from 'lucide-react';
+import { User, Mail, Phone, Wallet, Clock, LogOut, ChevronRight, Loader2, ShieldCheck, MapPin, Map, AlertTriangle, Hash, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
