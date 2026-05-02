@@ -232,7 +232,7 @@ const Topup = () => {
           } else {
               alert("আপনার অর্ডারটি প্লেস করা হয়েছে! (খুব শীঘ্রই ভাউচার দেওয়া হবে) ⏳");
           }
-          navigate('/profile?tab=orders'); 
+          navigate('/my-orders');
         }
         setProcessing(false);
       }

@@ -37,8 +37,8 @@ const BottomNav = () => {
         <span className="text-[10px] font-bold">Add Money</span>
       </Link>
 
-      <Link to={session ? "/profile?tab=orders" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/profile', 'orders') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
-        <Clock size={22} className={isActive('/profile', 'orders') ? "fill-purple-500/20" : ""} />
+      <Link to={session ? "/my-orders" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/my-orders') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
+        <Clock size={22} className={isActive('/my-orders') ? "fill-purple-500/20" : ""} />
         <span className="text-[10px] font-bold">My Order</span>
       </Link>
 
@@ -47,8 +47,8 @@ const BottomNav = () => {
         <span className="text-[10px] font-bold">Support</span>
       </a>
 
-      <Link to={session ? "/profile?tab=settings" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/profile', 'settings') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
-        <User size={22} className={isActive('/profile', 'settings') ? "fill-purple-500/20" : ""} />
+      <Link to={session ? "/profile" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/profile') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
+        <User size={22} className={isActive('/profile') ? "fill-purple-500/20" : ""} />
         <span className="text-[10px] font-bold">Account</span>
       </Link>
 

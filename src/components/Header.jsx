@@ -60,9 +60,9 @@ const Header = () => {
             <div className="hidden lg:flex items-center gap-6 font-bold text-gray-300 text-sm">
               <Link to="/" className="hover:text-[#8B5CF6] transition">Home</Link>
               <Link to="/contact" className="hover:text-[#8B5CF6] transition">Add Money</Link>
-              <Link to={user ? "/profile?tab=orders" : "/auth"} className="hover:text-[#8B5CF6] transition">My Orders</Link>
+              <Link to={user ? "/my-orders" : "/auth"} className="hover:text-[#8B5CF6] transition">My Orders</Link>
               <a href="https://wa.me/YOUR_NUMBER" target="_blank" rel="noreferrer" className="hover:text-[#8B5CF6] transition">Support</a>
-              <Link to={user ? "/profile?tab=settings" : "/auth"} className="hover:text-[#8B5CF6] transition">Account</Link>
+              <Link to={user ? "/profile" : "/auth"} className="hover:text-[#8B5CF6] transition">Account</Link>
             </div>
             
             {user ? (
@@ -74,7 +74,7 @@ const Header = () => {
                   {balance}৳
                 </button>
 
-                <Link to="/profile?tab=settings" className="relative cursor-pointer flex items-center gap-2 group lg:hidden">
+                <Link to="/profile" className="relative cursor-pointer flex items-center gap-2 group lg:hidden">
                    <div className="w-10 h-10 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-lg border-2 border-gray-600 group-hover:border-[#8B5CF6] transition uppercase">
                       {user?.email ? user.email.charAt(0).toUpperCase() : (user?.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : 'U')}
                    </div>
