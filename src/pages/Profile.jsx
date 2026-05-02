@@ -71,9 +71,26 @@ const Profile = () => {
       }
 
       let currentSupportId = profile?.support_id;
-      if (profile && !currentSupportId) {
-          currentSupportId = Math.floor(10000000 + Math.random() * 90000000).toString();
+      if (!currentSupportId) {
+        // Generate sequential support ID starting from 1
+        const { data: existingIds } = await supabase
+          .from('profiles')
+          .select('support_id')
+          .not('support_id', 'is', null)
+          .order('support_id', { ascending: false })
+          .limit(1);
+        
+        let nextId = 1;
+        if (existingIds && existingIds.length > 0) {
+          const maxId = parseInt(existingIds[0].support_id) || 0;
+          nextId = maxId + 1;
+        }
+        
+        currentSupportId = nextId.toString();
+        
+        if (profile) {
           await supabase.from('profiles').update({ support_id: currentSupportId }).eq('id', user.id);
+        }
       }
 
       if (!profile) {
