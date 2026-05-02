@@ -37,23 +37,20 @@ const BottomNav = () => {
         <span className="text-[10px] font-bold">Add Money</span>
       </Link>
 
-      {/* UNIQUE FLOATING SUPPORT BUTTON */}
-      <div className="relative -top-5">
-        <Link to="/support" className="group flex flex-col items-center justify-center">
-            <div className={`
-                w-14 h-14 rounded-full flex items-center justify-center 
-                border-4 border-[#1E293B] shadow-lg shadow-blue-500/40 
-                transition-all duration-300 transform group-hover:scale-110
-                ${isActive('/support') 
-                    ? 'bg-gradient-to-tr from-[#8B5CF6] to-purple-500 text-white' 
-                    : 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white'
-                }
+      {/* UNIQUE HALF-FLOATING SUPPORT BUTTON */}
+      <div className="relative flex-1 flex justify-center">
+        <Link to="/support" className="group absolute -top-7 flex flex-col items-center">
+          <div className={`
+              h-16 w-16 rounded-full flex items-center justify-center
+              border-4 border-[#1E293B] shadow-lg shadow-blue-500/40
+              transition-all duration-300 transform ${isActive('/support') ? 'scale-110' : 'group-hover:scale-110'}
+              ${isActive('/support') ? 'bg-gradient-to-tr from-[#8B5CF6] to-purple-500 text-white' : 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white'}
             `}>
-                <Headphones size={28} className={isActive('/support') ? 'animate-none' : 'group-hover:rotate-12 transition duration-300'} />
-            </div>
-            <span className={`text-[10px] font-bold mt-1 ${isActive('/support') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
-                Support
-            </span>
+            <Headphones size={28} className={isActive('/support') ? 'animate-none' : 'group-hover:rotate-12 transition duration-300'} />
+          </div>
+          <span className={`text-[10px] font-bold mt-1 ${isActive('/support') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
+            Support
+          </span>
         </Link>
       </div>
 

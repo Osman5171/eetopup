@@ -9,12 +9,13 @@ const AdminProducts = () => {
   const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     brand_name: '',
     name: '',
     image_url: '',
-    product_type: 'Top Up', // 👈 নতুন ফিল্ড: Product Type
+    product_type: 'Top Up',
+    topup_type: 'id_code', // <-- নতুন ফিল্ড
     status: 'Active'
   });
 
@@ -43,16 +44,22 @@ const AdminProducts = () => {
     e.preventDefault();
     if (!formData.brand_name) return alert("Please create a Brand first!");
     setSaving(true);
+    
+    // ডাটা সেভ করার সময় Top Up না হলে topup_type ক্লিয়ার করে দিচ্ছি
+    const dataToSave = { ...formData };
+    if (dataToSave.product_type !== 'Top Up') {
+        dataToSave.topup_type = 'id_code'; 
+    }
 
     try {
       if (editingId) {
-        const { error } = await supabase.from('products').update(formData).eq('id', editingId);
+        const { error } = await supabase.from('products').update(dataToSave).eq('id', editingId);
         if (error) throw error;
-        alert("Product Updated! ✅");
+        alert("Product Updated!");
       } else {
-        const { error } = await supabase.from('products').insert([formData]);
+        const { error } = await supabase.from('products').insert([dataToSave]);
         if (error) throw error;
-        alert("Product Created! 🎉");
+        alert("Product Created!");
       }
       closeModal();
       fetchProducts();
@@ -80,7 +87,8 @@ const AdminProducts = () => {
         brand_name: product.brand_name, 
         name: product.name, 
         image_url: product.image_url, 
-        product_type: product.product_type || 'Top Up', // 👈 আগের প্রোডাক্টগুলোর জন্য ডিফল্ট Top Up
+        product_type: product.product_type || 'Top Up',
+        topup_type: product.topup_type || 'id_code', // <-- এডিটের সময় ডাটা লোড হবে
         status: product.status 
       });
       setEditingId(product.id);
@@ -90,6 +98,7 @@ const AdminProducts = () => {
         name: '', 
         image_url: '', 
         product_type: 'Top Up',
+        topup_type: 'id_code',
         status: 'Active' 
       });
       setEditingId(null);
@@ -142,19 +151,22 @@ const AdminProducts = () => {
                         <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400"><ImageIcon size={16} /></div>
                       )}
                     </td>
-                    <td className="p-4 font-bold text-[#0a1930]">{product.name}</td>
+                    <td className="p-4 font-bold text-[#0a1930]">
+                        {product.name}
+                        {product.product_type === 'Top Up' && product.topup_type === 'ingame' && (
+                           <span className="ml-2 text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">In-Game</span>
+                        )}
+                    </td>
                     <td className="p-4 text-sm font-semibold text-blue-600">{product.brand_name}</td>
                     
-                    {/* 👈 প্রোডাক্ট টাইপ ব্যাজ */}
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider ${
-                        product.product_type === 'Voucher' ? 'bg-purple-100 text-purple-700' :
+                        product.product_type === 'Voucher' ? 'bg-purple-100 text-purple-700' : 
                         product.product_type === 'SMM' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {product.product_type || 'TOP UP'}
                       </span>
                     </td>
-
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${product.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
                         {product.status}
@@ -187,7 +199,6 @@ const AdminProducts = () => {
                     {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
                   </select>
                 </div>
-                {/* 👈 প্রোডাক্ট টাইপ ড্রপডাউন */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Product Type</label>
                   <select value={formData.product_type} onChange={(e) => setFormData({...formData, product_type: e.target.value})} className="w-full border border-blue-300 bg-blue-50 text-blue-800 font-bold rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#0052FF]">
@@ -197,6 +208,18 @@ const AdminProducts = () => {
                   </select>
                 </div>
               </div>
+
+              {/* নতুন অপশন: Top Up Type Selection */}
+              {formData.product_type === 'Top Up' && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <label className="block text-sm font-medium text-purple-800 mb-1">Top Up Method</label>
+                  <select value={formData.topup_type} onChange={(e) => setFormData({...formData, topup_type: e.target.value})} className="w-full border border-purple-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-purple-500 font-bold text-gray-700">
+                    <option value="id_code">ID Code (Player ID)</option>
+                    <option value="ingame">In-Game (FB/Gmail Login)</option>
+                    <option value="2_field">2 Field (UID + Zone)</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
