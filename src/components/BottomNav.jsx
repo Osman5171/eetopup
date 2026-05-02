@@ -62,6 +62,7 @@ const BottomNav = () => {
         <span className="text-[10px] font-bold">My Order</span>
       </Link>
 
+
       <Link to={session ? "/profile" : "/auth"} className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive('/profile') ? 'text-[#8B5CF6] -translate-y-1' : 'text-gray-400 hover:text-[#A78BFA]'}`}>
         <User size={22} className={isActive('/profile') ? "fill-purple-500/20" : ""} />
         <span className="text-[10px] font-bold">Account</span>
