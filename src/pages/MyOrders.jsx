@@ -15,7 +15,7 @@ const MyOrders = () => {
 
   const fetchOrders = async () => {
     const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
+    if (error || !session || !session.user) {
       navigate('/auth');
       return;
     }
@@ -30,6 +30,17 @@ const MyOrders = () => {
       setOrderHistory(orders);
     }
     setLoading(false);
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return 'N/A';
+    }
   };
 
   const handleCopyCode = (code, id) => {
@@ -70,8 +81,7 @@ const MyOrders = () => {
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
                       Date: <span className="text-white">
-                         {/* <-- ফিক্স করা হয়েছে: Date ক্র্যাশ এড়াতে সেফটি যোগ করা হয়েছে */}
-                         {order?.created_at ? new Date(order.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}
+                         {formatDate(order?.created_at)}
                       </span>
                     </p>
                     <p className="text-sm text-gray-400 font-bold flex justify-between sm:justify-start gap-2">
@@ -98,7 +108,7 @@ const MyOrders = () => {
                   </div>
                 </div>
 
-                {order.voucher_code && order.voucher_code.trim() !== '' && (
+                {typeof order.voucher_code === 'string' && order.voucher_code.trim() !== '' && (
                   <div className="mt-4 pt-4 border-t border-[#334155]">
                     <p className="text-xs font-bold text-[#A78BFA] mb-2 uppercase tracking-wider flex items-center gap-1">
                         Your Delivered Voucher Code(s):

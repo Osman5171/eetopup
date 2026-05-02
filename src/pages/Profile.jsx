@@ -54,7 +54,7 @@ const Profile = () => {
     try {
       const { data: { session }, error: authError } = await supabase.auth.getSession();
       
-      if (authError || !session) {
+      if (authError || !session || !session.user) {
         navigate('/auth');
         return;
       }
@@ -276,7 +276,7 @@ const Profile = () => {
                 <Hash size={14} className="text-[#8B5CF6]"/>
                 <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">UID:</span>
                 <span className="text-[#A78BFA] font-mono font-bold text-sm tracking-widest">
-                    {localProfile.support_id || localProfile.id.slice(0,8)}
+                    {localProfile.support_id || localProfile.id?.slice(0,8) || ''}
                 </span>
             </div>
           </div>

@@ -4,6 +4,7 @@ import OneSignal from 'react-onesignal';
 import { supabase } from './supabaseClient';
 
 // User Components
+import ErrorBoundary from './components/ErrorBoundary';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -84,46 +85,54 @@ function App() {
     }
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8B5CF6]"></div>
+      </div>
+    );
+  }
 
   if (maintenance.active) {
     return <Maintenance endTime={maintenance.endTime} />;
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* User Der Jonno Routes */}
-        <Route element={<UserLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/topup" element={<Topup />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/my-orders" element={<MyOrders />} /> {/* <-- ফিক্স করা হয়েছে (নতুন রুট) */}
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-        </Route>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          {/* User Der Jonno Routes */}
+          <Route element={<UserLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/topup" element={<Topup />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+          </Route>
 
-        {/* Admin Der Jonno Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} /> 
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="vouchers" element={<AdminVouchers />} />
-          <Route path="deposits" element={<AdminDeposits />} />
-          <Route path="brands" element={<AdminBrands />} /> 
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="packages" element={<AdminPackages />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="slider" element={<AdminSlider />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="promo" element={<AdminPromo />} /> 
-        </Route>
+          {/* Admin Der Jonno Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} /> 
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="vouchers" element={<AdminVouchers />} />
+            <Route path="deposits" element={<AdminDeposits />} />
+            <Route path="brands" element={<AdminBrands />} /> 
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="packages" element={<AdminPackages />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="slider" element={<AdminSlider />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="promo" element={<AdminPromo />} /> 
+          </Route>
 
-        {/* 404 Not Found Route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          {/* 404 Not Found Route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

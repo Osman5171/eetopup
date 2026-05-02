@@ -76,7 +76,7 @@ const Header = () => {
 
                 <Link to="/profile?tab=settings" className="relative cursor-pointer flex items-center gap-2 group lg:hidden">
                    <div className="w-10 h-10 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-lg border-2 border-gray-600 group-hover:border-[#8B5CF6] transition uppercase">
-                      {user.email.charAt(0)}
+                      {user?.email ? user.email.charAt(0).toUpperCase() : (user?.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : 'U')}
                    </div>
                 </Link>
               </>
