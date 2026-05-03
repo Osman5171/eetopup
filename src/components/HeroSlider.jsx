@@ -41,7 +41,7 @@ const HeroSlider = () => {
   if (images.length === 0) {
     return (
       <div className="w-full mt-4 rounded-xl overflow-hidden shadow-md">
-        <img src="https://eagleeyetopup.com/logo.png" alt="Default Banner" className="w-full h-40 md:h-72 lg:h-96 object-contain bg-[#0a1930]" />
+        <img src="/logo.png" alt="Default Banner" className="w-full h-40 md:h-72 lg:h-96 object-contain bg-[#0a1930]" />
       </div>
     );
   }

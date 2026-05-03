@@ -8,7 +8,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import WhatsAppFloat from './components/WhatsAppFloat';
 import InstallBanner from './components/InstallBanner';
 import Home from './pages/Home';
 import Topup from './pages/Topup';
@@ -44,7 +43,6 @@ const UserLayout = () => {
         <Outlet />
       </main>
       <Footer />
-      <WhatsAppFloat />
       <InstallBanner /> 
       <BottomNav />
     </div>

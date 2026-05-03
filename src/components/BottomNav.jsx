@@ -39,10 +39,10 @@ const BottomNav = () => {
 
       {/* UNIQUE HALF-FLOATING SUPPORT BUTTON */}
       <div className="relative flex-1 flex justify-center">
-        <Link to="/support" className="group absolute -top-10 flex flex-col items-center">
+        <Link to="/support" className="group absolute -top-12 flex flex-col items-center">
           <div className={`
-              h-16 w-16 rounded-full flex items-center justify-center
-              border-4 border-[#1E293B] shadow-[0_18px_35px_rgba(59,130,246,0.25)]
+              h-18 w-18 rounded-full flex items-center justify-center
+              border-4 border-[#0F172A] shadow-[0_22px_45px_rgba(59,130,246,0.35)]
               transition-all duration-300 transform ${isActive('/support') ? 'scale-110' : 'group-hover:scale-110'}
               ${isActive('/support') ? 'bg-gradient-to-tr from-[#8B5CF6] to-[#7C3AED] text-white' : 'bg-gradient-to-tr from-[#2563EB] to-[#06B6D4] text-white'}
             `}>

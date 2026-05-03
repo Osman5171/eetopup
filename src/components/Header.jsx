@@ -48,7 +48,7 @@ const Header = () => {
           
           <Link to="/" className="flex items-center cursor-pointer">
             <img 
-              src="https://eagleeyetopup.com/logo.png" 
+              src="/logo.png" 
               alt="Eagle Eye" 
               className="h-10 md:h-12 bg-white rounded p-1"
             />

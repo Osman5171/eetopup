@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, CheckCircle, Clock, ShoppingBag, Loader2, Banknote } from 'lucide-react';
+import { Activity, RefreshCw, CheckCircle, Clock, Loader2, Banknote } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const LatestOrders = () => {
@@ -51,7 +51,7 @@ const LatestOrders = () => {
   };
 
   const getStatusColor = (status) => isPaidStatus(status) ? 'text-green-400 bg-green-900/20 border-green-500/30' : 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30';
-  const getStatusText = (status) => isPaidStatus(status) ? 'PAID' : 'PENDING';
+  const getStatusText = (status) => isPaidStatus(status) ? 'COMPLETE' : 'PENDING';
   const getStatusIcon = (status) => isPaidStatus(status) ? <CheckCircle size={14} className="text-green-500"/> : <Clock size={14} className="text-yellow-500 animate-pulse"/>;
 
   return (
@@ -67,9 +67,8 @@ const LatestOrders = () => {
       </div>
       
       <div className="bg-[#1e293b] rounded-xl border border-gray-700 overflow-hidden shadow-2xl">
-        <div className="grid grid-cols-3 bg-[#0f172a] p-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-700">
-          <div className="pl-1">Player</div>
-          <div className="text-center">Amount</div>
+        <div className="grid grid-cols-2 bg-[#0f172a] p-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-700">
+          <div className="pl-1">Player / Package</div>
           <div className="text-right pr-2">Status</div>
         </div>
 
@@ -81,23 +80,20 @@ const LatestOrders = () => {
           ) : orders.length > 0 ? (
             orders.map((order) => {
               const displayName = order.profiles?.full_name || order.profiles?.phone || order.profiles?.whatsapp || 'Player';
-              const initial = displayName.charAt(0).toUpperCase();
 
               return (
-                <div key={order.id} className="grid grid-cols-3 p-3 border-b border-gray-700/30 last:border-none items-center hover:bg-gray-800/50 transition duration-300">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="bg-gray-700/50 p-1.5 rounded-full shrink-0 border border-gray-600">
-                      <Banknote size={14} className="text-blue-400"/>
-                    </div>
-                    <div className="min-w-0">
+                <div key={order.id} className="grid grid-cols-2 p-3 border-b border-gray-700/30 last:border-none items-center hover:bg-gray-800/50 transition duration-300">
+                  <div className="flex flex-col gap-1 overflow-hidden">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-gray-700/50 p-1.5 rounded-full shrink-0 border border-gray-600">
+                        <Banknote size={14} className="text-blue-400"/>
+                      </div>
                       <p className="text-xs font-bold text-white truncate">{displayName}</p>
-                      <p className="text-[9px] text-gray-500 flex items-center gap-1">{timeAgo(order.created_at)}</p>
                     </div>
-                  </div>
-                  <div className="text-center">
-                    <span className="bg-[#0f172a] border border-gray-600 px-3 py-1 rounded-full text-xs font-bold font-mono text-[#8B5CF6] shadow-sm">
-                      ৳{order.amount}
-                    </span>
+                    <div>
+                      <p className="text-sm font-extrabold text-white truncate">{order.package_name || 'Top-up Package'}</p>
+                      <p className="text-[9px] text-gray-500">{timeAgo(order.created_at)}</p>
+                    </div>
                   </div>
                   <div className="flex justify-end">
                     <div className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold border uppercase tracking-wide shadow-sm ${getStatusColor(order.status)}`}>

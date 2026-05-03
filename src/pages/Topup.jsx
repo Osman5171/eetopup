@@ -31,7 +31,7 @@ const Topup = () => {
   const [productInfo, setProductInfo] = useState({ 
     name: 'Loading...', 
     brand_name: '',
-    image_url: 'https://eagleeyetopup.com/logo.png',
+    image_url: '/logo.png',
     product_type: 'Top Up',
     topup_type: 'id_code' // ডিফল্ট 
   });

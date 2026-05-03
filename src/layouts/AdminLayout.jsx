@@ -85,7 +85,7 @@ const AdminLayout = () => {
       <div className={`${isSidebarOpen ? 'w-64' : 'w-0 md:w-20'} bg-[#0a1526] text-white transition-all duration-300 flex flex-col overflow-hidden z-20`}>
         <div className="h-16 flex items-center justify-center border-b border-gray-800">
           {isSidebarOpen ? (
-            <img src="https://eagleeyetopup.com/logo.png" alt="Logo" className="h-10 bg-white p-1 rounded" />
+            <img src="/logo.png" alt="Logo" className="h-10 bg-white p-1 rounded" />
           ) : (
             <span className="font-bold text-xl text-[#0052FF] hidden md:block">EE</span>
           )}
