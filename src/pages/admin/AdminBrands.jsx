@@ -180,4 +180,5 @@ const AdminBrands = () => {
   );
 };
 
+
 export default AdminBrands;
