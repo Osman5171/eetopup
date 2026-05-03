@@ -25,7 +25,8 @@ const Topup = () => {
       accountType: 'Facebook',
       accountIdentity: '', // Number or Email
       password: '',
-      backupCode: ''
+      backupCode: '',
+      whatsappNumber: ''
   });
 
   const [productInfo, setProductInfo] = useState({ 
@@ -64,31 +65,45 @@ const Topup = () => {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     
+    let profile = null;
     if (session?.user) {
       setUser(session.user);
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('balance, phone, whatsapp')
         .eq('id', session.user.id)
         .single();
         
+      profile = profileData;
       if (profile) {
         setUserBalance(profile.balance || 0);
         const phoneNum = profile.phone || profile.whatsapp || '';
-        setSavedPhone(phoneNum); 
+        setSavedPhone(phoneNum);
       }
     }
 
     let targetProduct = productQuery;
-    if (targetProduct) {
-      const { data: pData } = await supabase.from('products').select('*').eq('name', targetProduct).single();
-      if (pData) setProductInfo(pData);
-    } else {
-      const { data: firstProd } = await supabase.from('products').select('*').eq('status', 'Active').limit(1).single();
-      if (firstProd) {
-        targetProduct = firstProd.name;
-        setProductInfo(firstProd);
+let activeProduct = null;
+      if (targetProduct) {
+        const { data: pData } = await supabase.from('products').select('*').eq('name', targetProduct).single();
+        if (pData) {
+          activeProduct = pData;
+          setProductInfo(pData);
+        }
+      } else {
+        const { data: firstProd } = await supabase.from('products').select('*').eq('status', 'Active').limit(1).single();
+        if (firstProd) {
+          targetProduct = firstProd.name;
+          activeProduct = firstProd;
+          setProductInfo(firstProd);
+        }
       }
+
+      if (profile && activeProduct?.topup_type === 'ingame') {
+        setInGameData(prev => ({
+          ...prev,
+          whatsappNumber: profile.whatsapp || profile.phone || ''
+        }));
     }
 
     let pkgQuery = supabase.from('packages').select('*').eq('status', 'Active').order('sell_price', { ascending: true });
@@ -157,7 +172,10 @@ const Topup = () => {
             if (!inGameData.accountIdentity || !inGameData.password) {
                 return alert("Account ID/Number and Password are required for In-Game Topup!");
             }
-            finalPlayerId = `[${inGameData.accountType}] ID: ${inGameData.accountIdentity} | Pass: ${inGameData.password} | Backup: ${inGameData.backupCode || 'N/A'}`;
+            finalPlayerId = `[${inGameData.accountType}] ID: ${inGameData.accountIdentity} | Pass: ${inGameData.password}`;
+            if (inGameData.backupCode) {
+              finalPlayerId += ` | Backup: ${inGameData.backupCode}`;
+            }
         } else {
             if (!playerId) return alert("Player ID is required!");
             finalPlayerId = playerId;
@@ -215,6 +233,10 @@ const Topup = () => {
 
         if (isVoucher && playerId !== savedPhone) {
           await supabase.from('profiles').update({ phone: playerId }).eq('id', user.id);
+        }
+
+        if (topupStyle === 'ingame' && inGameData.whatsappNumber) {
+          await supabase.from('profiles').update({ whatsapp: inGameData.whatsappNumber }).eq('id', user.id);
         }
 
         const orderPackageName = isVoucher ? `${currentPkg.name} (x${quantity})` : currentPkg.name;
@@ -385,10 +407,10 @@ const Topup = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-300 mb-1">Backup Code / Your WhatsApp Number</label>
+                        <label className="block text-sm font-bold text-gray-300 mb-1">Backup Code <span className="text-xs text-gray-400">(Optional)</span></label>
                         <input 
                             type="text" 
-                            placeholder="Backup Code / Your WhatsApp Number"
+                            placeholder="Optional Backup Code"
                             value={inGameData.backupCode} 
                             onChange={(e) => setInGameData({...inGameData, backupCode: e.target.value})}
                             className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] transition-all"
@@ -396,6 +418,17 @@ const Topup = () => {
                         <a href="https://youtube.com/watch?v=YOUR_VIDEO_LINK" target="_blank" rel="noopener noreferrer" className="text-xs text-[#8B5CF6] hover:text-purple-400 font-bold mt-2 flex items-center gap-1">
                             কিভাবে {inGameData.accountType === 'Facebook' ? 'ফেসবুক' : 'জিমেইল'} অ্যাকাউন্ট এর ব্যাকআপ কোড বের করবেন? <ExternalLink size={12}/>
                         </a>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-300 mb-1">WhatsApp Number</label>
+                        <input 
+                            type="text" 
+                            placeholder="Enter your WhatsApp number"
+                            value={inGameData.whatsappNumber}
+                            onChange={(e) => setInGameData({...inGameData, whatsappNumber: e.target.value})}
+                            className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] transition-all"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-2">WhatsApp will be auto-detected from your profile if available, and saved on order.</p>
                     </div>
                 </div>
              </div>

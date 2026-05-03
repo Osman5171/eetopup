@@ -170,6 +170,11 @@ const Auth = () => {
                 <button onClick={() => setShowManualForm(true)} className="w-full bg-transparent text-gray-300 font-bold py-3.5 rounded-xl border border-gray-600 hover:bg-gray-800 transition flex items-center justify-center gap-2">
                     <Mail size={18} /> Continue with Email
                 </button>
+                {isLogin && (
+                  <button onClick={() => { setShowManualForm(true); setIsForgotPassword(true); }} className="w-full text-xs text-blue-400 mt-3 hover:text-[#fbbf24] transition font-medium outline-none">
+                    Forgot Password?
+                  </button>
+                )}
 
                 <div className="text-center mt-6 pt-4 border-t border-gray-700/50">
                     <p className="text-gray-400 text-sm">
